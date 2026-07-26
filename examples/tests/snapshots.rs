@@ -65,6 +65,16 @@ include_demo!(d23, "../examples/23_iso_tactics.rs");
 include_demo!(d24, "../examples/24_torchlit_crypt.rs");
 include_demo!(d25, "../examples/25_flag_war.rs");
 include_demo!(d26, "../examples/26_hexcrawl.rs");
+include_demo!(d27, "../examples/27_rhythm_crypt.rs");
+include_demo!(d28, "../examples/28_spire_deck.rs");
+include_demo!(d29, "../examples/29_ship_breach.rs");
+include_demo!(d30, "../examples/30_fleet_command.rs");
+include_demo!(d31, "../examples/31_dice_tactics.rs");
+include_demo!(d32, "../examples/32_loop_track.rs");
+include_demo!(d33, "../examples/33_onebit_quest.rs");
+include_demo!(d34, "../examples/34_ice_breach.rs");
+include_demo!(d35, "../examples/35_stealth_grid.rs");
+include_demo!(d36, "../examples/36_court_reigns.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -127,6 +137,16 @@ demo_tests!(iso_tactics, d23::IsoTactics);
 demo_tests!(torchlit_crypt, d24::TorchlitCrypt);
 demo_tests!(flag_war, d25::FlagWar);
 demo_tests!(hexcrawl, d26::Hexcrawl);
+demo_tests!(rhythm_crypt, d27::RhythmCrypt);
+demo_tests!(spire_deck, d28::SpireDeck);
+demo_tests!(ship_breach, d29::ShipBreach);
+demo_tests!(fleet_command, d30::FleetCommand);
+demo_tests!(dice_tactics, d31::DiceTactics);
+demo_tests!(loop_track, d32::LoopTrack);
+demo_tests!(onebit_quest, d33::OnebitQuest);
+demo_tests!(ice_breach, d34::IceBreach);
+demo_tests!(stealth_grid, d35::StealthGrid);
+demo_tests!(court_reigns, d36::CourtReigns);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///
@@ -184,5 +204,88 @@ mod fills_the_grid {
         minimal => d15::Minimal,
         subcell_canvas => d16::SubcellCanvas,
         tileset_sprites => d17::TilesetSprites,
+    }
+}
+
+/// Every touch-era demo must still lay out at the two grid shapes a phone
+/// actually produces.
+///
+/// The snapshot tests all run at 80x24, which is neither of them. A browser
+/// filling the viewport at the capped device pixel ratio hands over roughly
+/// 73x79 cells in portrait and 158x36 in landscape (see `ui::touch`), and the
+/// two differ by a factor of four in aspect ratio. A demo that reflows on
+/// width alone passes at 80x24 and then leaves half the screen blank on a
+/// phone held upright, which is exactly the failure this batch of demos exists
+/// to avoid.
+///
+/// Deliberately scoped to demos 27 and up. The earlier interface demos lay out
+/// responsively too, but they were authored against a landscape target and are
+/// not held to the portrait requirement.
+mod phone_shapes {
+    use super::*;
+    use support::extent;
+
+    /// A phone held upright: tall and narrow.
+    const PORTRAIT: (u16, u16) = (73, 79);
+    /// The same phone on its side: wide and short.
+    const LANDSCAPE: (u16, u16) = (158, 36);
+
+    fn assert_fills_shape<D: ascii_tile_demos::Demo>(
+        name: &str,
+        shape: &str,
+        (cols, rows): (u16, u16),
+    ) {
+        let (max_x, max_y) = extent::<D>(cols, rows, FRAMES);
+        // Two cells of slack per axis, the same tolerance `fills_the_grid`
+        // uses: a demo may leave a margin, but it may not leave a band.
+        assert!(
+            max_x + 2 >= cols,
+            "{name} drew no further right than column {max_x} of {cols} in {shape}"
+        );
+        assert!(
+            max_y + 2 >= rows,
+            "{name} drew no further down than row {max_y} of {rows} in {shape}"
+        );
+    }
+
+    macro_rules! phone {
+        ($($test:ident => $module:ident :: $demo:ident),* $(,)?) => {
+            $(
+                mod $test {
+                    use super::{LANDSCAPE, PORTRAIT, assert_fills_shape, $module};
+
+                    #[test]
+                    fn lays_out_on_a_portrait_phone() {
+                        assert_fills_shape::<$module::$demo>(
+                            stringify!($demo),
+                            "portrait",
+                            PORTRAIT,
+                        );
+                    }
+
+                    #[test]
+                    fn lays_out_on_a_landscape_phone() {
+                        assert_fills_shape::<$module::$demo>(
+                            stringify!($demo),
+                            "landscape",
+                            LANDSCAPE,
+                        );
+                    }
+                }
+            )*
+        };
+    }
+
+    phone! {
+        rhythm_crypt => d27::RhythmCrypt,
+        spire_deck => d28::SpireDeck,
+        ship_breach => d29::ShipBreach,
+        fleet_command => d30::FleetCommand,
+        dice_tactics => d31::DiceTactics,
+        loop_track => d32::LoopTrack,
+        onebit_quest => d33::OnebitQuest,
+        ice_breach => d34::IceBreach,
+        stealth_grid => d35::StealthGrid,
+        court_reigns => d36::CourtReigns,
     }
 }

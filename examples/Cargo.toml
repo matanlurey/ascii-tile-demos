@@ -160,3 +160,43 @@ path = "examples/25_flag_war.rs"
 [[example]]
 name = "26_hexcrawl"
 path = "examples/26_hexcrawl.rs"
+
+[[example]]
+name = "27_rhythm_crypt"
+path = "examples/27_rhythm_crypt.rs"
+
+[[example]]
+name = "28_spire_deck"
+path = "examples/28_spire_deck.rs"
+
+[[example]]
+name = "29_ship_breach"
+path = "examples/29_ship_breach.rs"
+
+[[example]]
+name = "30_fleet_command"
+path = "examples/30_fleet_command.rs"
+
+[[example]]
+name = "31_dice_tactics"
+path = "examples/31_dice_tactics.rs"
+
+[[example]]
+name = "32_loop_track"
+path = "examples/32_loop_track.rs"
+
+[[example]]
+name = "33_onebit_quest"
+path = "examples/33_onebit_quest.rs"
+
+[[example]]
+name = "34_ice_breach"
+path = "examples/34_ice_breach.rs"
+
+[[example]]
+name = "35_stealth_grid"
+path = "examples/35_stealth_grid.rs"
+
+[[example]]
+name = "36_court_reigns"
+path = "examples/36_court_reigns.rs"

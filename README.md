@@ -92,6 +92,23 @@ the resolution a game would actually use.
 | 25 | `flag_war` | Territory as colored ASCII trigrams, where flags pull population rather than order it |
 | 26 | `hexcrawl` | A hand-drawn referee map: terrain that ignores the hex grid inked over it |
 
+The last batch is about playing on a phone. Each one is adapted from a specific
+turn-based game, drawn at a scale where an entity spans many cells, and built so
+every control can be hit with a thumb.
+
+| # | Demo | Adapted from | Technique |
+| --- | --- | --- | --- |
+| 27 | `rhythm_crypt` | Crypt of the NecroDancer | A beat track driving a dungeon of chunky tiles, played with a thumb D-pad or a swipe |
+| 28 | `spire_deck` | Slay the Spire | A fanned card hand, telegraphed enemy intent, and tap-to-target versus drag-to-play |
+| 29 | `ship_breach` | FTL | A ship cross-section where power is a fixed pool of pips you move between rooms |
+| 30 | `fleet_command` | Crying Suns | A node star map and a lane battle, which become a tab switcher on a phone |
+| 31 | `dice_tactics` | Slice & Dice | Die faces drawn large enough to read as dice, then assigned to targets |
+| 32 | `loop_track` | Loop Hero | A hero who walks a loop you build around him, with legal slots lit before you commit |
+| 33 | `onebit_quest` | OneBit Battle | Three desktop columns collapsing to one panel and a bottom tab bar |
+| 34 | `ice_breach` | Netrunner, Monster Train | Cyberpunk intrusion up three vertical server lanes against a rising trace |
+| 35 | `stealth_grid` | Invisible Inc | Wall-clipped vision cones, and why a dangerous move costs two taps |
+| 36 | `court_reigns` | Reigns | One card, swiped left or right, previewing its consequences before you let go |
+
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
 listed in each demo's status bar and on the gallery page.
@@ -181,6 +198,23 @@ tileset glyph renders in whatever color the sheet was drawn in. The block sheet
 is a white mask, so **quadrant, sextant, and braille glyphs render white** and
 only white. `HalfBlockCanvas` is unaffected: it uses `▀▄█`, all of which CP437
 has, so it is drawn by the font and takes color normally.
+
+**A tappable control is 9x4 cells, and that is why these demos are drawn
+large.** The browser build fills the viewport and `retroglyph-window` caps the
+device pixel ratio at 1.5, so one 8x16 cell is 5.33 x 10.67 CSS px. Apple asks
+for a 44 pt touch target and Material for 48 dp; against that cell, 44 pt is
+8.25 columns by 4.12 rows. A one-cell control is therefore a quarter the linear
+size of the smallest thing a finger can reliably hit, which is the entire
+argument for drawing demos 27 and up at interface scale rather than one glyph
+per unit. `ui::touch` derives the constants once and `Hotspots::push_tappable`
+grows a small control to a legal hit region without redrawing it larger.
+
+The same arithmetic says what grid a phone actually hands over, and it is not
+the shape a terminal usually is: 73x79 cells in portrait against 158x36 in
+landscape. The responsive range is not "narrow to wide" but *tall and narrow* to
+*wide and short*, so `ui::touch::Shape` classifies by which axis is scarce
+rather than by width, and a demo that branched on width alone would break one of
+the two.
 
 The practical rule, which every demo from 18 on follows: anything that carries
 information through color must be a CP437 glyph. That is why `ui::panel::bar`

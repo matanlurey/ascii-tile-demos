@@ -5,7 +5,9 @@
 //! rather than sixteen slightly different UIs, and it keeps each demo file
 //! focused on the technique it's actually demonstrating.
 
+pub mod card;
 pub mod panel;
+pub mod touch;
 
 use retroglyph_core::event::{Event, KeyCode};
 use retroglyph_core::{Color, Rect, Style, Surface};

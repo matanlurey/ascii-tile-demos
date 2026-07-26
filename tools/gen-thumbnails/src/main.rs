@@ -80,6 +80,16 @@ include_demo!(d23, "../../../examples/examples/23_iso_tactics.rs");
 include_demo!(d24, "../../../examples/examples/24_torchlit_crypt.rs");
 include_demo!(d25, "../../../examples/examples/25_flag_war.rs");
 include_demo!(d26, "../../../examples/examples/26_hexcrawl.rs");
+include_demo!(d27, "../../../examples/examples/27_rhythm_crypt.rs");
+include_demo!(d28, "../../../examples/examples/28_spire_deck.rs");
+include_demo!(d29, "../../../examples/examples/29_ship_breach.rs");
+include_demo!(d30, "../../../examples/examples/30_fleet_command.rs");
+include_demo!(d31, "../../../examples/examples/31_dice_tactics.rs");
+include_demo!(d32, "../../../examples/examples/32_loop_track.rs");
+include_demo!(d33, "../../../examples/examples/33_onebit_quest.rs");
+include_demo!(d34, "../../../examples/examples/34_ice_breach.rs");
+include_demo!(d35, "../../../examples/examples/35_stealth_grid.rs");
+include_demo!(d36, "../../../examples/examples/36_court_reigns.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -299,6 +309,16 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "24_torchlit_crypt", d24::TorchlitCrypt);
     capture!(&out, still, "25_flag_war", d25::FlagWar);
     capture!(&out, still, "26_hexcrawl", d26::Hexcrawl);
+    capture!(&out, still, "27_rhythm_crypt", d27::RhythmCrypt);
+    capture!(&out, still, "28_spire_deck", d28::SpireDeck);
+    capture!(&out, still, "29_ship_breach", d29::ShipBreach);
+    capture!(&out, still, "30_fleet_command", d30::FleetCommand);
+    capture!(&out, still, "31_dice_tactics", d31::DiceTactics);
+    capture!(&out, still, "32_loop_track", d32::LoopTrack);
+    capture!(&out, still, "33_onebit_quest", d33::OnebitQuest);
+    capture!(&out, still, "34_ice_breach", d34::IceBreach);
+    capture!(&out, still, "35_stealth_grid", d35::StealthGrid);
+    capture!(&out, still, "36_court_reigns", d36::CourtReigns);
 
     if !still.is_empty() {
         eprintln!(
