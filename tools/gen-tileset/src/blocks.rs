@@ -96,7 +96,21 @@ pub fn build() -> Sheet {
     // therefore *not* contiguous with the mask value, which is the one fiddly
     // part of the sextant encoding and the reason this loop computes the
     // codepoint rather than assuming `0x1FB00 + mask`.
+    //
+    // Masks 21 and 42 are skipped outright. They map to `▌` and `▐`, which
+    // are not in the 1FB00 block precisely because CP437 already has them, so
+    // including them here would override two glyphs the font draws correctly.
+    // That is not merely redundant: a tileset sprite ignores the cell's
+    // foreground (retroglyph#537), so supplying them from this sheet turns two
+    // working colorable half blocks into white-only ones, and `▌` is the
+    // building block of every half-width bar and gauge in the gallery. The
+    // quadrant table above omits the CP437 members for the same reason; this
+    // loop simply has to say so explicitly, because it derives its characters
+    // rather than listing them.
     for mask in 1u8..63 {
+        if mask == 21 || mask == 42 {
+            continue;
+        }
         let Some(ch) = sextant_char(mask) else {
             continue;
         };
@@ -230,10 +244,31 @@ mod tests {
     #[test]
     fn the_sheet_covers_every_glyph_cp437_lacks() {
         let sheet = build();
-        // 10 quadrants + 62 sextants (the block omits 2 of 64) + 256 braille.
-        assert_eq!(sheet.chars.len(), 10 + 62 + 256);
+        // 10 quadrants + 60 sextants (the block omits 2 of 64, and 2 more are
+        // the CP437 half blocks this sheet must not override) + 256 braille.
+        assert_eq!(sheet.chars.len(), 10 + 60 + 256);
         assert_eq!(sheet.image.height(), CELL_H);
         assert_eq!(sheet.image.width(), sheet.chars.len() as u32 * CELL_W);
+    }
+
+    #[test]
+    fn the_sheet_never_overrides_a_glyph_cp437_already_has() {
+        // Every character here would otherwise be drawn by the bitmap font, in
+        // the cell's own foreground color. A tileset sprite is not modulated by
+        // `fg` (retroglyph#537), so shadowing one of these swaps a colorable
+        // glyph for a permanently white one.
+        let chars = build().chars;
+        for ch in [
+            ' ', '\u{2588}', // space and full block
+            '\u{2580}', '\u{2584}', // upper and lower halves
+            '\u{258C}', '\u{2590}', // left and right halves
+            '\u{2591}', '\u{2592}', '\u{2593}', // the shade ramp
+        ] {
+            assert!(
+                !chars.contains(&ch),
+                "{ch:?} is in CP437; supplying it from the tileset makes it white-only"
+            );
+        }
     }
 
     #[test]

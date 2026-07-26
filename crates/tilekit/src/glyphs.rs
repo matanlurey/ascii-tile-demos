@@ -80,27 +80,42 @@ pub mod terrain {
 }
 
 /// Settlement, landmark, and unit markers.
+///
+/// Every glyph here is CP437, and that is a hard constraint rather than a
+/// stylistic one. `retroglyph`'s pixel backends resolve glyphs through
+/// `BitmapFont::char_to_index`, which is CP437-only and substitutes a solid
+/// block for anything else, so a marker outside CP437 renders as a filled
+/// rectangle instead of failing visibly. The obvious workaround, supplying the
+/// character from a tileset, trades one bug for a worse one: a sprite ignores
+/// the cell's foreground (retroglyph#537), so a tileset marker can never carry
+/// the faction or biome color that is most of the point of a marker.
+///
+/// So the palette below is chosen from what CP437 actually has, which is why
+/// these are typographic stand-ins (`Ω` for a gate, `π` for a broken
+/// colonnade) rather than the pictographic `♜`/`⚒`/`⚓` a modern font would
+/// offer. `examples/tests/glyphs.rs` pins both properties for every constant
+/// here; see <https://github.com/crates-lurey-io/retroglyph/issues/539>.
 pub mod marker {
-    /// A capital city.
-    pub const CAPITAL: char = '★';
-    /// A city.
+    /// A capital city. CP437 `0x0F`.
+    pub const CAPITAL: char = '☼';
+    /// A city. CP437 `0x7F`.
     pub const CITY: char = '⌂';
-    /// A town or village.
+    /// A town or village. CP437 `0xA9`.
     pub const TOWN: char = '⌐';
-    /// A fortress or watchtower.
-    pub const FORT: char = '♜';
-    /// A ruin.
-    pub const RUIN: char = '¤';
-    /// A mine or quarry.
-    pub const MINE: char = '⚒';
-    /// A shrine or magical site.
+    /// A fortress or watchtower: a gate arch. CP437 `0xEA`.
+    pub const FORT: char = 'Ω';
+    /// A ruin: a standing pair of columns and a lintel. CP437 `0xE3`.
+    pub const RUIN: char = 'π';
+    /// A mine or quarry: an adit mouth. CP437 `0xE9`.
+    pub const MINE: char = 'Θ';
+    /// A shrine or magical site. CP437 `0x04`.
     pub const SHRINE: char = '♦';
-    /// A port.
-    pub const PORT: char = '⚓';
-    /// A friendly unit.
-    pub const UNIT: char = '☗';
-    /// A scout or explorer.
-    pub const SCOUT: char = '☖';
+    /// A port: a quay seen from above. CP437 `0x16`.
+    pub const PORT: char = '▬';
+    /// A friendly unit: a filled token. CP437 `0x02`.
+    pub const UNIT: char = '☻';
+    /// A scout or explorer: a hollow token. CP437 `0x01`.
+    pub const SCOUT: char = '☺';
 }
 
 /// Picks a glyph from `ramp` by normalized intensity `t` in `0.0..=1.0`.
