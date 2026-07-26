@@ -1,0 +1,15 @@
+/target
+/dist
+
+# Locally installed build tools. `tools/wasm-bindgen-shim.sh` puts a
+# version-matched wasm-bindgen here rather than in ~/.cargo/bin, so a globally
+# installed copy at a different version stays untouched.
+/.bin
+/.bin-cargo
+
+# Personal notes and agent scratch, per the global convention.
+/.matan
+/.pi-subagents
+
+**/*.rs.bk
+.DS_Store

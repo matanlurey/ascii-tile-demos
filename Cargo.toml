@@ -1,0 +1,65 @@
+[workspace]
+members = ["crates/tilekit", "examples", "tools/gen-tileset"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+authors = ["Matan Lurey <matan@lurey.org>"]
+license = "MIT"
+repository = "https://github.com/crates-lurey-io/ascii-tile-demos"
+keywords = ["roguelike", "terminal", "tilemap", "gamedev"]
+categories = ["game-development", "graphics"]
+
+[workspace.dependencies]
+# All published on crates.io at these exact versions; nothing here is a path
+# dependency, so this repo clones and builds standalone.
+retroglyph-core = "0.3.1"
+retroglyph-crossterm = "0.1.4"
+retroglyph-gl = "0.1.0"
+retroglyph-software = "0.4.0"
+retroglyph-terminal-wasm = "0.1.4"
+retroglyph-widgets = "0.3.1"
+retroglyph-window = "0.3.1"
+hexal = "0.1.1"
+tilekit = { path = "crates/tilekit", version = "0.1.0" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+must_use_candidate = "deny"
+missing_errors_doc = "deny"
+missing_panics_doc = "deny"
+module_name_repetitions = "allow"
+
+# Demo code trades a little precision for readability: world generation and
+# projection math is f32/f64 throughout and lands in u16/i32 grid coordinates,
+# so the cast lints fire constantly for casts that are correct by construction
+# (already clamped, already in range). Denying them repo-wide would mean an
+# `allow` on nearly every rendering function.
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+
+# WASM bundles ship over the wire, so size wins over the last few percent of
+# speed. `opt-level = "s"` plus fat LTO roughly halves the .wasm versus the
+# default release profile.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
