@@ -200,3 +200,43 @@ path = "examples/35_stealth_grid.rs"
 [[example]]
 name = "36_court_reigns"
 path = "examples/36_court_reigns.rs"
+
+[[example]]
+name = "37_faith_war"
+path = "examples/37_faith_war.rs"
+
+[[example]]
+name = "38_hex_general"
+path = "examples/38_hex_general.rs"
+
+[[example]]
+name = "39_company_road"
+path = "examples/39_company_road.rs"
+
+[[example]]
+name = "40_shard_realm"
+path = "examples/40_shard_realm.rs"
+
+[[example]]
+name = "41_riven_route"
+path = "examples/41_riven_route.rs"
+
+[[example]]
+name = "42_paper_dungeon"
+path = "examples/42_paper_dungeon.rs"
+
+[[example]]
+name = "43_bone_lord"
+path = "examples/43_bone_lord.rs"
+
+[[example]]
+name = "44_dusk_field"
+path = "examples/44_dusk_field.rs"
+
+[[example]]
+name = "45_night_walk"
+path = "examples/45_night_walk.rs"
+
+[[example]]
+name = "46_party_pause"
+path = "examples/46_party_pause.rs"

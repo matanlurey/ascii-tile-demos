@@ -109,6 +109,23 @@ every control can be hit with a thumb.
 | 35 | `stealth_grid` | Invisible Inc | Wall-clipped vision cones, and why a dangerous move costs two taps |
 | 36 | `court_reigns` | Reigns | One card, swiped left or right, previewing its consequences before you let go |
 
+The batch after that takes the same approach to the interfaces of strategy and
+party RPGs, where the screen is mostly chrome and the chrome is the point. Each
+one is built around the single element that makes its source recognizable.
+
+| # | Demo | Adapted from | Technique |
+| --- | --- | --- | --- |
+| 37 | `faith_war` | Dominions 5 | Armies drawn as formations, so strength is read as area rather than a number |
+| 38 | `hex_general` | Fantasy General | A framed hex map whose bottom panels forecast the losses on both sides |
+| 39 | `company_road` | Battle Brothers | Overland travel under a circle of vision, with time you can pause and speed up |
+| 40 | `shard_realm` | Eador: Genesis | A gilded hero panel: portrait, stat grid, quest, and item slots, all live |
+| 41 | `riven_route` | Vagrus | A weighted node web where a route is costed in supplies and days before you take it |
+| 42 | `paper_dungeon` | Book of Demons | A papercraft crypt travelled on rails, with cards for an inventory |
+| 43 | `bone_lord` | Iratus | An inked dungeon plan on parchment above a bench of four ranked squads |
+| 44 | `dusk_field` | Battle for Wesnoth | The dense sidebar, and terrain defence read through a day/night cycle |
+| 45 | `night_walk` | Traveller's Hymn | A bestiary that unredacts itself, in a world too dark to see across |
+| 46 | `party_pause` | Baldur's Gate II | Real-time-with-pause, and the portrait column that makes it legible |
+
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
 listed in each demo's status bar and on the gallery page.

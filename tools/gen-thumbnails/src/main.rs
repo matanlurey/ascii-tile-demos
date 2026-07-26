@@ -90,6 +90,16 @@ include_demo!(d33, "../../../examples/examples/33_onebit_quest.rs");
 include_demo!(d34, "../../../examples/examples/34_ice_breach.rs");
 include_demo!(d35, "../../../examples/examples/35_stealth_grid.rs");
 include_demo!(d36, "../../../examples/examples/36_court_reigns.rs");
+include_demo!(d37, "../../../examples/examples/37_faith_war.rs");
+include_demo!(d38, "../../../examples/examples/38_hex_general.rs");
+include_demo!(d39, "../../../examples/examples/39_company_road.rs");
+include_demo!(d40, "../../../examples/examples/40_shard_realm.rs");
+include_demo!(d41, "../../../examples/examples/41_riven_route.rs");
+include_demo!(d42, "../../../examples/examples/42_paper_dungeon.rs");
+include_demo!(d43, "../../../examples/examples/43_bone_lord.rs");
+include_demo!(d44, "../../../examples/examples/44_dusk_field.rs");
+include_demo!(d45, "../../../examples/examples/45_night_walk.rs");
+include_demo!(d46, "../../../examples/examples/46_party_pause.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -319,6 +329,16 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "34_ice_breach", d34::IceBreach);
     capture!(&out, still, "35_stealth_grid", d35::StealthGrid);
     capture!(&out, still, "36_court_reigns", d36::CourtReigns);
+    capture!(&out, still, "37_faith_war", d37::FaithWar);
+    capture!(&out, still, "38_hex_general", d38::HexGeneral);
+    capture!(&out, still, "39_company_road", d39::CompanyRoad);
+    capture!(&out, still, "40_shard_realm", d40::ShardRealm);
+    capture!(&out, still, "41_riven_route", d41::RivenRoute);
+    capture!(&out, still, "42_paper_dungeon", d42::PaperDungeon);
+    capture!(&out, still, "43_bone_lord", d43::BoneLord);
+    capture!(&out, still, "44_dusk_field", d44::DuskField);
+    capture!(&out, still, "45_night_walk", d45::NightWalk);
+    capture!(&out, still, "46_party_pause", d46::PartyPause);
 
     if !still.is_empty() {
         eprintln!(

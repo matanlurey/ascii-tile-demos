@@ -75,6 +75,16 @@ include_demo!(d33, "../examples/33_onebit_quest.rs");
 include_demo!(d34, "../examples/34_ice_breach.rs");
 include_demo!(d35, "../examples/35_stealth_grid.rs");
 include_demo!(d36, "../examples/36_court_reigns.rs");
+include_demo!(d37, "../examples/37_faith_war.rs");
+include_demo!(d38, "../examples/38_hex_general.rs");
+include_demo!(d39, "../examples/39_company_road.rs");
+include_demo!(d40, "../examples/40_shard_realm.rs");
+include_demo!(d41, "../examples/41_riven_route.rs");
+include_demo!(d42, "../examples/42_paper_dungeon.rs");
+include_demo!(d43, "../examples/43_bone_lord.rs");
+include_demo!(d44, "../examples/44_dusk_field.rs");
+include_demo!(d45, "../examples/45_night_walk.rs");
+include_demo!(d46, "../examples/46_party_pause.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -147,6 +157,16 @@ demo_tests!(onebit_quest, d33::OnebitQuest);
 demo_tests!(ice_breach, d34::IceBreach);
 demo_tests!(stealth_grid, d35::StealthGrid);
 demo_tests!(court_reigns, d36::CourtReigns);
+demo_tests!(faith_war, d37::FaithWar);
+demo_tests!(hex_general, d38::HexGeneral);
+demo_tests!(company_road, d39::CompanyRoad);
+demo_tests!(shard_realm, d40::ShardRealm);
+demo_tests!(riven_route, d41::RivenRoute);
+demo_tests!(paper_dungeon, d42::PaperDungeon);
+demo_tests!(bone_lord, d43::BoneLord);
+demo_tests!(dusk_field, d44::DuskField);
+demo_tests!(night_walk, d45::NightWalk);
+demo_tests!(party_pause, d46::PartyPause);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///
@@ -287,5 +307,15 @@ mod phone_shapes {
         ice_breach => d34::IceBreach,
         stealth_grid => d35::StealthGrid,
         court_reigns => d36::CourtReigns,
+        faith_war => d37::FaithWar,
+        hex_general => d38::HexGeneral,
+        company_road => d39::CompanyRoad,
+        shard_realm => d40::ShardRealm,
+        riven_route => d41::RivenRoute,
+        paper_dungeon => d42::PaperDungeon,
+        bone_lord => d43::BoneLord,
+        dusk_field => d44::DuskField,
+        night_walk => d45::NightWalk,
+        party_pause => d46::PartyPause,
     }
 }
