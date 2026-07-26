@@ -1,0 +1,126 @@
+[package]
+name = "ascii-tile-demos"
+version = "0.1.0"
+description = "A gallery of tiled overland map rendering techniques, in a character grid"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+tilekit.workspace = true
+retroglyph-core.workspace = true
+retroglyph-widgets.workspace = true
+hexal.workspace = true
+retroglyph-crossterm = { workspace = true, optional = true }
+retroglyph-gl = { workspace = true, optional = true }
+retroglyph-software = { workspace = true, optional = true }
+retroglyph-window = { workspace = true, optional = true }
+retroglyph-terminal-wasm = { workspace = true, optional = true }
+# Portable `std::time::Instant`: a zero-cost re-export on native, backed by
+# `Performance.now()` on wasm32. Already in the tree via winit.
+web-time = "1"
+
+[features]
+default = []
+crossterm = ["dep:retroglyph-crossterm"]
+software = [
+  "dep:retroglyph-software",
+  "dep:retroglyph-window",
+  "retroglyph-software/default-font",
+  "retroglyph-software/tilesets",
+]
+gl = [
+  "dep:retroglyph-gl",
+  "dep:retroglyph-window",
+  "retroglyph-gl/default-font",
+  "retroglyph-gl/tilesets",
+]
+wasm-terminal = ["dep:retroglyph-terminal-wasm"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.126"
+console_error_panic_hook = "0.1"
+
+[dev-dependencies]
+insta = { version = "1.34", features = ["yaml"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[[example]]
+name = "01_terrain_cells"
+path = "examples/01_terrain_cells.rs"
+
+[[example]]
+name = "02_chunky_tiles"
+path = "examples/02_chunky_tiles.rs"
+
+[[example]]
+name = "03_dual_grid"
+path = "examples/03_dual_grid.rs"
+
+[[example]]
+name = "04_autotile_gallery"
+path = "examples/04_autotile_gallery.rs"
+
+[[example]]
+name = "05_iso_diamond"
+path = "examples/05_iso_diamond.rs"
+
+[[example]]
+name = "06_iso_elevation"
+path = "examples/06_iso_elevation.rs"
+
+[[example]]
+name = "07_hex_tiles"
+path = "examples/07_hex_tiles.rs"
+
+[[example]]
+name = "08_hex_outline"
+path = "examples/08_hex_outline.rs"
+
+[[example]]
+name = "09_hex_subcell"
+path = "examples/09_hex_subcell.rs"
+
+[[example]]
+name = "10_political"
+path = "examples/10_political.rs"
+
+[[example]]
+name = "11_fog_of_war"
+path = "examples/11_fog_of_war.rs"
+
+[[example]]
+name = "12_relief"
+path = "examples/12_relief.rs"
+
+[[example]]
+name = "13_parchment"
+path = "examples/13_parchment.rs"
+
+[[example]]
+name = "14_seasons"
+path = "examples/14_seasons.rs"
+
+[[example]]
+name = "15_minimal"
+path = "examples/15_minimal.rs"
+
+[[example]]
+name = "16_subcell_canvas"
+path = "examples/16_subcell_canvas.rs"
+
+[[example]]
+name = "17_tileset_sprites"
+path = "examples/17_tileset_sprites.rs"
+
+[[test]]
+name = "snapshots"
+path = "tests/snapshots.rs"
