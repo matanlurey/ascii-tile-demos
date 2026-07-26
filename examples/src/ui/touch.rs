@@ -307,6 +307,18 @@ impl Pointer {
     /// finger, so a tap and a drag on a phone are the same events a click and
     /// a click-drag are on a desktop. Nothing in this module (or in any demo)
     /// needs a second input path for touch.
+    ///
+    /// `Drag` and `Moved` are deliberately handled by the same arm, and that
+    /// is not defensive coding: `MouseEventKind::Drag` is emitted only by the
+    /// crossterm backend. The winit backends report every pointer motion as
+    /// `Moved` whether or not a button is held, because `WindowApp` tracks the
+    /// cursor position but never which buttons are down
+    /// ([retroglyph#554](https://github.com/crates-lurey-io/retroglyph/issues/554)).
+    /// Matching on `Drag` alone -- the obvious way to write this -- therefore
+    /// works in a terminal and silently does nothing in a browser, which is
+    /// the one backend where touch actually happens. Since a drag is decided
+    /// here from the tracked press anyway (see [`moved`](Self::moved)), the
+    /// kind is only a hint and both spellings mean the same thing.
     pub fn feed(&mut self, event: &Event) {
         let Event::Mouse(mouse) = event else {
             return;
