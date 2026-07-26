@@ -67,6 +67,14 @@ for demo_path in "$examples_dir"/examples/*.rs; do
   done
 
   rows="$rows<article class=\"card\">"
+  # The thumbnail is written later by `gen-thumbnails`, so this links a file
+  # that does not exist yet. That is fine for a static build, and the
+  # `onerror` handler covers the demos the headless renderer cannot draw
+  # faithfully, which deliberately ship no thumbnail at all.
+  rows="$rows<a class=\"thumb\" href=\"./$demo/${variants[0]}/\">"
+  rows="$rows<img src=\"./$demo/thumb.png\" alt=\"$title\" loading=\"lazy\" decoding=\"async\""
+  rows="$rows onerror=\"this.closest('.thumb').classList.add('missing');this.remove()\">"
+  rows="$rows</a>"
   rows="$rows<h2>$title</h2>"
   rows="$rows<p class=\"blurb\">$blurb</p>"
   [ -n "$keys" ] && rows="$rows<p class=\"keys\">$keys</p>"

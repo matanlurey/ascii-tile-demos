@@ -121,7 +121,6 @@ impl Mode {
 pub struct Relief {
     world: World,
     camera: TileCamera,
-    time: f32,
     cursor: Cell,
     fps: FpsMeter,
     mode: Mode,
@@ -141,7 +140,6 @@ impl Default for Relief {
         Self {
             world,
             camera,
-            time: 0.0,
             cursor: Cell::new(sx, sy),
             fps: FpsMeter::new(),
             mode: Mode::Shaded,
@@ -407,7 +405,6 @@ impl Demo for Relief {
 
     fn tick<B: Backend>(&mut self, term: &mut Terminal<B>, frame: &Frame) -> bool {
         let dt = frame.delta.as_secs_f32();
-        self.time += dt;
         self.fps.record(frame.delta);
         if !self.handle_events(term) {
             return false;

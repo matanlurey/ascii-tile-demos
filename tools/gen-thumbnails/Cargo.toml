@@ -1,0 +1,38 @@
+[package]
+name = "gen-thumbnails"
+version = "0.1.0"
+description = "Renders a gallery thumbnail for every demo using the headless software backend"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# Never enabled and never read. Including a demo's source also expands its
+# `demo_main!`, whose `#[cfg(feature = ...)]` arms resolve against *this*
+# crate rather than the one that defined the macro, so without these the build
+# is buried in `unexpected cfg condition value` warnings for a `main` that is
+# never called.
+[features]
+crossterm = []
+gl = []
+software = []
+wasm-terminal = []
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+tilekit.workspace = true
+hexal.workspace = true
+retroglyph-core.workspace = true
+retroglyph-widgets.workspace = true
+retroglyph-software.workspace = true
+retroglyph-window.workspace = true
+web-time = "1"
+
+# The demos are `[[example]]` binaries, so there is no library to link against.
+# `software` gives `Demo::configure_software` and the pixel buffer this reads.
+ascii-tile-demos = { path = "../../examples", features = ["software"] }

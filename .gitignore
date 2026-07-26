@@ -13,3 +13,6 @@
 
 **/*.rs.bk
 .DS_Store
+
+# Built gallery output, produced by tools/build-wasm-gallery.sh.
+/dist/

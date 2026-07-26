@@ -49,6 +49,12 @@ jobs:
       - name: Build the gallery
         run: ./tools/build-wasm-gallery.sh dist
 
+      # After the gallery, because it writes a thumb.png into each demo's
+      # directory. Also the animation gate: it fails the build if a demo has
+      # stopped moving, which no screenshot-based check would notice.
+      - name: Render thumbnails
+        run: cargo run --release -p gen-thumbnails -- dist
+
       - name: Upload
         uses: actions/upload-pages-artifact@v3
         with:

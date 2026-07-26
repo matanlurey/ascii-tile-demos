@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/tilekit", "examples", "tools/gen-tileset"]
+members = ["crates/tilekit", "examples", "tools/gen-tileset", "tools/gen-thumbnails"]
 resolver = "3"
 
 [workspace.package]

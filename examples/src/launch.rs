@@ -306,7 +306,7 @@ const TARGET_FPS: Option<u32> = Some(60);
 /// demo-specific concern, and the cost is one 7 KB PNG decoded once at
 /// startup.
 #[cfg(any(feature = "software", feature = "gl"))]
-fn block_tileset() -> retroglyph_window::tileset::TilesetOptions {
+pub fn block_tileset() -> retroglyph_window::tileset::TilesetOptions {
     use retroglyph_window::tileset::{Codepage, TilesetOptions};
 
     // Both files come from the same generator run, so the sheet's sprite order

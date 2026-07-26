@@ -618,6 +618,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen-thumbnails"
+version = "0.1.0"
+dependencies = [
+ "ascii-tile-demos",
+ "hexal",
+ "image",
+ "retroglyph-core",
+ "retroglyph-software",
+ "retroglyph-widgets",
+ "retroglyph-window",
+ "tilekit",
+ "web-time",
+]
+
+[[package]]
 name = "gen-tileset"
 version = "0.1.0"
 dependencies = [

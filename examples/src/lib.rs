@@ -54,6 +54,11 @@ pub use launch::run_gl;
 #[cfg(feature = "software")]
 pub use launch::{run_software, run_software_with};
 
+// Both windowed backends register it, so it is exported whenever either is on
+// rather than riding along with the software re-export.
+#[cfg(any(feature = "software", feature = "gl"))]
+pub use launch::block_tileset;
+
 /// The grid every demo is authored against: wide enough for a strategy map
 /// plus a sidebar, short enough to fit a laptop terminal without scrolling.
 ///
