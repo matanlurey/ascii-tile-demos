@@ -180,7 +180,14 @@ pub struct TilesetSprites {
 
 impl Default for TilesetSprites {
     fn default() -> Self {
-        let world = World::generate(WORLD_W, WORLD_H, 12);
+        // Seed chosen for what the *default framing* shows, not for the
+        // world as a whole. This demo opens centered on the capital at two
+        // screen columns per tile, so it sees roughly 80x39 tiles; seed 12
+        // put that window entirely inside an inland massif, which rendered as
+        // a screen of grey and white with none of the twelve sprites the sheet
+        // actually has. Seed 14 puts a coastline in frame with no biome above
+        // a quarter of the view.
+        let world = World::generate(WORLD_W, WORLD_H, 14);
         let (sx, sy) = world.start_position();
         let mut camera = TileCamera::new(
             i32::from(GRID_COLS),
@@ -262,12 +269,22 @@ impl TilesetSprites {
     /// the sprite codepoints would render as tofu (or as whatever the terminal
     /// makes of a private-use character, which is worse because it is
     /// unpredictable). The mode is a *request*; this is the answer.
-    const fn sprites_available() -> bool {
-        cfg!(any(feature = "software", feature = "gl"))
+    fn sprites_available<B: Backend>(term: &Terminal<B>) -> bool {
+        // Ask the backend, not the build. `composites_layers` is true exactly
+        // for the pixel backends, which are the ones that can hold a tileset;
+        // cell backends flatten layers and render glyphs through a font.
+        //
+        // A `cfg!(feature = "software")` here would be wrong in both
+        // directions. It says yes for a binary built with `software` but
+        // driven headless (which is how the snapshot tests run it), so the
+        // test renders private-use codepoints no font will ever have. And it
+        // would say no for a future backend that gained tilesets without
+        // being named in the list.
+        term.backend().composites_layers()
     }
 
-    const fn effective_mode(&self) -> Mode {
-        if Self::sprites_available() {
+    fn effective_mode<B: Backend>(&self, term: &Terminal<B>) -> Mode {
+        if Self::sprites_available(term) {
             self.mode
         } else {
             Mode::Ascii
@@ -278,7 +295,7 @@ impl TilesetSprites {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (col_start, row_start, col_end, row_end) = self.camera.visible_tiles(TILE.w, TILE.h);
-        let sprites = self.effective_mode() == Mode::Sprites;
+        let sprites = self.effective_mode(term) == Mode::Sprites;
 
         for row in row_start..row_end {
             for col in col_start..col_end {
@@ -380,17 +397,17 @@ impl TilesetSprites {
         }
     }
 
-    fn status(&self) -> String {
+    fn status<B: Backend>(&self, term: &Terminal<B>) -> String {
         let (col, row) = (self.cursor.col, self.cursor.row);
         let biome = self.world.biome_at(col, row);
-        let mode = self.effective_mode();
+        let mode = self.effective_mode(term);
         let mut parts = vec![
             format!("({col}, {row})"),
             biome.name().to_owned(),
             format!("{} sprite", sprite_name(sprite_for(biome))),
             format!("mode {}", mode.label()),
         ];
-        if !Self::sprites_available() {
+        if !Self::sprites_available(term) {
             parts.push("(no tileset on this backend)".to_owned());
         }
         if let Some(landmark) = self.world.landmark_at(col, row) {
@@ -474,7 +491,7 @@ impl Demo for TilesetSprites {
         self.draw_map(term, content);
         term.layer(0);
         ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
+        let text = self.status(term);
         ui::status_bar::<B, Self>(term, status, &text, &self.fps);
         let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
 
