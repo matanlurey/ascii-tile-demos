@@ -1,7 +1,12 @@
 # ascii-tile-demos
 
+[![CI](https://github.com/matanlurey/ascii-tile-demos/actions/workflows/ci.yml/badge.svg)](https://github.com/matanlurey/ascii-tile-demos/actions/workflows/ci.yml)
+[![Pages](https://github.com/matanlurey/ascii-tile-demos/actions/workflows/pages.yml/badge.svg)](https://github.com/matanlurey/ascii-tile-demos/actions/workflows/pages.yml)
+
 A gallery of tiled overland map rendering techniques, drawn entirely in a grid
 of styled characters.
+
+**[Run them in your browser](https://matanlurey.github.io/ascii-tile-demos/)**
 
 Seventeen demos covering square, isometric, and hex tiles across a range of
 visual styles, from a Dwarf Fortress-style glyph map through Age of Wonders
