@@ -42,6 +42,7 @@ cargo run --manifest-path examples/Cargo.toml --example 01_terrain_cells --featu
 | `crates/tilekit/` | Shared building blocks: noise, world generation, tile geometry, autotiling, palettes, glyph banks, field of view, camera |
 | `examples/` | The demo gallery. `src/` is the harness, `examples/` is one file per demo |
 | `tools/gen-tileset/` | Generates the sprite sheet used by `17_tileset_sprites` |
+| `tools/gen-thumbnails/` | Renders the gallery thumbnails, and fails the build if a demo stopped animating |
 | `tools/*.sh` | WASM build scripts |
 | `web/templates/` | HTML templates for the published gallery |
 
@@ -186,6 +187,24 @@ of them; `just lint` checks each separately.
 2. Add its `[[example]]` stanza to `examples/Cargo.toml`.
 3. Add it to `examples/tests/snapshots.rs`.
 4. Add a row to the table above.
+
+Thumbnails are rendered by `tools/gen-thumbnails`, which runs after the gallery
+build and drops a `thumb.png` into each demo's directory. It uses the headless
+software backend rather than screenshotting the built pages, so it needs no
+browser and no GPU, and it must configure that backend exactly as
+`run_software` does (the block tileset especially, or every braille and
+quadrant glyph falls back to CP437's solid block).
+
+The same pass doubles as an animation gate: it renders each demo's settled
+frame, compares it against several later ones, and fails if nothing moved. A
+demo that has stopped animating still screenshots perfectly, so nothing else
+in CI would catch it.
+
+One demo ships no thumbnail. `17_tileset_sprites` draws 16x16 sprites across
+two 8x16 cells via the tileset's `spacing(2, 1)`; the surfaced renderer honors
+that and the headless one blits only the first cell, so the map comes out
+striped. Its card falls back to a placeholder rather than showing a picture
+that suggests the demo is broken when the page itself is fine.
 
 The gallery needs nothing else: `tools/build-wasm-gallery.sh` finds demos by
 globbing `examples/examples/*.rs` and reads each one's title, blurb, and key
