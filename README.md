@@ -134,14 +134,24 @@ codepage names. `tools/gen-tileset` draws the missing 328 glyphs procedurally
 registers it for every demo on both pixel backends. Regenerate with
 `just tileset`.
 
-**The winit driver is event-driven unless you ask for a frame rate.** With
-`target_fps: None`, `about_to_wait` leaves `ControlFlow::Wait` set and only
-requests a redraw when something happened, so an animated app advances only
-while you move the mouse. That default is right for an idle terminal-style app
-and wrong for everything in this gallery. The harness passes `Some(60)`. It has
-no effect on wasm (always `requestAnimationFrame`-driven) or on the terminal
-backend (already an unthrottled loop), which is why this only shows up in a
-native window.
+**The winit driver is event-driven unless you ask for a frame rate, and on
+wasm asking is not enough.** With `target_fps: None`, `about_to_wait` leaves
+`ControlFlow::Wait` set and only requests a redraw when something happened, so
+an animated app advances only while you move the mouse. That default suits an
+idle terminal-style app and nothing in this gallery, so the harness passes
+`Some(60)`.
+
+That fixes native. In the published `retroglyph-window` 0.3.1 the whole
+`frame_interval` branch is behind `#[cfg(not(target_arch = "wasm32"))]`, so on
+wasm `target_fps` is not ignored, it is compiled out, and the browser build
+freezes after one frame just the same. The harness therefore also injects one
+event per frame through the event-loop proxy, which sets `needs_redraw` and
+keeps `requestAnimationFrame` scheduling itself.
+
+Upstream already has the real fix (retroglyph's own examples animate in the
+browser); their unreleased tree moves the cfg to wrap only the *sleep*, leaving
+`request_redraw()` on the wasm path. The workaround comes out when a release
+carries it. See [retroglyph#510](https://github.com/crates-lurey-io/retroglyph/issues/510).
 
 **The windowed drivers do not resize the terminal.** They resize the backend's
 surface and push an `Event::Resize`, but never call `Terminal::resize`, and the
