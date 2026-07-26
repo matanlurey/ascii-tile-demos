@@ -1,0 +1,20 @@
+[package]
+name = "tilekit"
+version = "0.1.0"
+description = "Shared tile-map building blocks for the ascii-tile-demos gallery"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+retroglyph-core.workspace = true
+hexal.workspace = true
+
+[dev-dependencies]
+insta = { version = "1.34", features = ["yaml"] }
