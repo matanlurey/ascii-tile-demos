@@ -1,0 +1,66 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Only one deploy at a time, and let a newer commit supersede an in-flight
+# one. `cancel-in-progress: false` on the deploy side would queue them, which
+# is slower and lands the same result.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build the gallery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      # `tools/wasm-bindgen-shim.sh` installs a CLI matching the exact
+      # wasm-bindgen version in Cargo.lock. binstall fetches a prebuilt binary
+      # in seconds where `cargo install` would spend minutes compiling one.
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Cache the wasm-bindgen CLI
+        uses: actions/cache@v4
+        with:
+          path: .bin-cargo
+          key: wasm-bindgen-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Build the gallery
+        run: ./tools/build-wasm-gallery.sh dist
+
+      - name: Upload
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

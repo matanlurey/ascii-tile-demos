@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Backtraces cost nothing when nothing panics and save a rerun when
+  # something does.
+  RUST_BACKTRACE: 1
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Format, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all --check
+
+      # Each backend feature is linted separately rather than with
+      # --all-features. Backends are mutually exclusive at the `launch`
+      # dispatch level, so --all-features compiles only the software arm and
+      # would silently leave the gl, crossterm, and headless paths unlinted.
+      - name: Clippy (workspace)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy (crossterm)
+        run: cargo clippy --manifest-path examples/Cargo.toml --all-targets --features crossterm -- -D warnings
+      - name: Clippy (software)
+        run: cargo clippy --manifest-path examples/Cargo.toml --all-targets --features software -- -D warnings
+      - name: Clippy (gl)
+        run: cargo clippy --manifest-path examples/Cargo.toml --all-targets --features gl -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-features
+
+      # The generator must be deterministic: a no-op run that produces a diff
+      # means the committed assets and the code that draws them have drifted.
+      - name: Assets are reproducible
+        run: |
+          cargo run -p gen-tileset
+          git diff --exit-code -- examples/assets
+
+  build:
+    name: Build every backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      # The GL and windowed backends link against X11/Wayland and OpenGL on
+      # Linux; the runner image does not ship their development headers.
+      - name: Install windowing dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libx11-dev libxkbcommon-dev libwayland-dev libgl1-mesa-dev
+
+      - name: Headless
+        run: cargo build --manifest-path examples/Cargo.toml --examples
+      - name: Crossterm
+        run: cargo build --manifest-path examples/Cargo.toml --examples --features crossterm
+      - name: Software
+        run: cargo build --manifest-path examples/Cargo.toml --examples --features software
+      - name: GL
+        run: cargo build --manifest-path examples/Cargo.toml --examples --features gl
+      - name: WASM (software)
+        run: cargo build --manifest-path examples/Cargo.toml --examples --features software --target wasm32-unknown-unknown
+      - name: WASM (WebGL2)
+        run: cargo build --manifest-path examples/Cargo.toml --examples --features gl --target wasm32-unknown-unknown
