@@ -16,6 +16,8 @@
 //! | [`palette`] | Biome palettes, parchment, day/night and seasonal tints, hillshading, color ramps |
 //! | [`glyphs`] | Box drawing, quadrant/sextant/octant blocks, braille, shade ramps, sub-cell canvases |
 //! | [`fov`] | Recursive shadowcasting on squares, and its hex analogue |
+//! | [`path`] | Least-cost routing over weighted terrain, plus this turn's reach |
+//! | [`light`] | Additive colored light pools, torch flicker, and tone mapping |
 //! | [`camera`] | Pan/zoom viewport with fractional zoom, on top of `retroglyph`'s own `Camera` |
 
 #![forbid(unsafe_code)]
@@ -25,6 +27,8 @@ pub mod camera;
 pub mod fov;
 pub mod geom;
 pub mod glyphs;
+pub mod light;
 pub mod noise;
 pub mod palette;
+pub mod path;
 pub mod world;

@@ -5,6 +5,8 @@
 //! rather than sixteen slightly different UIs, and it keeps each demo file
 //! focused on the technique it's actually demonstrating.
 
+pub mod panel;
+
 use retroglyph_core::event::{Event, KeyCode};
 use retroglyph_core::{Color, Rect, Style, Surface};
 use retroglyph_widgets::truncate;

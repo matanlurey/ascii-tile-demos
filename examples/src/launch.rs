@@ -15,11 +15,6 @@ use std::time::Duration;
 use retroglyph_core::{App, Flow};
 use retroglyph_core::{Backend, Frame, Terminal};
 
-// Only the windowed backends size their own grid; crossterm takes the real
-// terminal's size and headless uses its own smaller test grid.
-#[cfg(any(feature = "software", feature = "gl"))]
-use crate::{GRID_COLS, GRID_ROWS};
-
 /// A runnable demo: `init` builds the state once, `tick` advances and draws
 /// one frame.
 ///
@@ -38,6 +33,22 @@ pub trait Demo: Default + Sized + 'static {
     /// One sentence naming the technique on show. Appears in the gallery index
     /// and in `--list` output, so keep it under about 90 characters.
     const BLURB: &'static str;
+
+    /// The grid this demo is designed against, in cells.
+    ///
+    /// Defaults to the gallery's [`GRID_COLS`]x[`GRID_ROWS`]. Override it for
+    /// a demo whose layout genuinely needs more room: a three-panel wargame
+    /// interface or a map drawn in 8x4 tiles has a width below which it is not
+    /// showing its technique any more, only showing that it ran out of space.
+    ///
+    /// This is a *design* target, not a guarantee, and overriding it does not
+    /// excuse a demo from laying out responsively. The windowed backends open
+    /// at this size and the browser then resizes to the viewport; the terminal
+    /// backend ignores it entirely and hands over whatever the real terminal
+    /// is; the snapshot tests deliberately run at
+    /// [`HEADLESS_COLS`]x[`HEADLESS_ROWS`], which is smaller than every value
+    /// here. A demo that only works at its declared size fails all three.
+    const GRID: (u16, u16) = (crate::GRID_COLS, crate::GRID_ROWS);
 
     /// Key bindings, as `(keys, what it does)` pairs, rendered into the
     /// demo's own help footer and the gallery page.
@@ -66,9 +77,11 @@ pub trait Demo: Default + Sized + 'static {
 
     /// Customize the software backend's builder before it is built.
     ///
-    /// Default: the standard [`GRID_COLS`]x[`GRID_ROWS`] grid at scale 1.
-    /// Override for a demo that needs a different grid, scale, font, or a
-    /// tileset -- see `16_tileset_sprites.rs` for a real override.
+    /// Default: [`GRID`](Self::GRID) at scale 1. Override for a demo that
+    /// needs a different scale, font, or a tileset -- see
+    /// `17_tileset_sprites.rs` for a real override. Grid size alone is better
+    /// expressed through [`GRID`](Self::GRID), which the headless renderers
+    /// and the thumbnail tool also read.
     #[cfg(feature = "software")]
     fn configure_software(
         builder: retroglyph_software::SoftwareBackendBuilder,
@@ -263,7 +276,7 @@ pub fn block_tileset() -> retroglyph_window::tileset::TilesetOptions {
 pub fn run_software<D: Demo>() {
     run_software_with::<D>(D::configure_software(
         retroglyph_software::SoftwareBackendBuilder::new()
-            .grid_size(GRID_COLS, GRID_ROWS)
+            .grid_size(D::GRID.0, D::GRID.1)
             .scale(1)
             .tileset(block_tileset()),
     ));
@@ -310,7 +323,7 @@ pub fn run_gl<D: Demo>() {
 
     let renderer = D::configure_gl(
         retroglyph_gl::GlBackendBuilder::new()
-            .grid_size(GRID_COLS, GRID_ROWS)
+            .grid_size(D::GRID.0, D::GRID.1)
             .scale(1)
             .tileset(block_tileset()),
     )
