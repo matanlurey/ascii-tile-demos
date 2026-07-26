@@ -35,6 +35,14 @@ Without `just`:
 cargo run --manifest-path examples/Cargo.toml --example 01_terrain_cells --features crossterm
 ```
 
+The `retroglyph-*` dependencies are currently pinned to a git revision rather
+than a crates.io version: the demos track APIs that have landed on retroglyph's
+`main` but are not published yet. Nothing is a path dependency, so the repo still
+clones and builds standalone; the pin goes back to a version requirement once the
+next retroglyph release goes out. What that revision changed, and what tripped
+this repo up on the way, is written up in
+[retroglyph#538](https://github.com/crates-lurey-io/retroglyph/issues/538).
+
 ## Layout
 
 | Path | What it is |
@@ -91,7 +99,7 @@ same on all of them.
 ## tilekit
 
 The shared crate is where the reusable, testable parts live. It has no
-knowledge of any demo and 177 unit tests.
+knowledge of any demo and 179 unit tests.
 
 | Module | Contents |
 | --- | --- |
@@ -109,11 +117,15 @@ knowledge of any demo and 177 unit tests.
 These are the non-obvious constraints this repo ran into. Each is worked around
 in `tilekit` or the harness, so demos do not have to think about them.
 
-**`Color::lerp` is a trap.** `retroglyph_core::Color::lerp` silently returns its
-first argument unchanged if either input is not an `Rgb` variant, and
-`Color::BLACK` is an ANSI color. `Color::lerp(Color::BLACK, x, t)` is therefore
-a no-op that returns black, with no error and no warning. Use
-`tilekit::palette::mix`, which resolves both inputs first.
+**Blend through `tilekit::palette::mix`, not `Color::lerp`.** Not because
+`Color::lerp` is broken any more (it resolves non-`Rgb` inputs itself as of
+[retroglyph#518](https://github.com/crates-lurey-io/retroglyph/pull/518); it
+used to return its first argument unchanged, which made
+`Color::lerp(Color::BLACK, x, t)` a silent no-op returning black, since
+`Color::BLACK` is an ANSI color). Two reasons remain: `mix` clamps `t`, so an
+unclamped animation parameter cannot extrapolate past an endpoint into a wrapped
+channel, and it does not need `retroglyph-core`'s optional `gem` feature, which
+`Color::lerp` is gated behind.
 
 **`hexal::Hex::line_to` is not contiguous.** As of hexal 0.1.1 it returns lines
 with two-step jumps and repeated hexes along the `q == r` diagonal, so anything
@@ -135,24 +147,44 @@ codepage names. `tools/gen-tileset` draws the missing 328 glyphs procedurally
 registers it for every demo on both pixel backends. Regenerate with
 `just tileset`.
 
-**The winit driver is event-driven unless you ask for a frame rate, and on
-wasm asking is not enough.** With `target_fps: None`, `about_to_wait` leaves
-`ControlFlow::Wait` set and only requests a redraw when something happened, so
-an animated app advances only while you move the mouse. That default suits an
-idle terminal-style app and nothing in this gallery, so the harness passes
-`Some(60)`.
+**A sprite bigger than one cell needs a span, declared per draw call.** A
+tileset sheet says nothing about how many cells its sprites occupy, and it
+cannot: two sprites from one sheet can legitimately cover different footprints.
+`Surface::put_span(pos, rows, style)` is where that is declared. `rows[0]`'s
+first character is the anchor glyph a pixel backend looks up in its sprite cache
+and draws once across the whole footprint; the rest are the span's text fallback,
+which cell backends print and pixel backends skip. `17_tileset_sprites` uses it
+for its 16x16 sprites over 2x1 cells of the 8x16 font grid.
 
-That fixes native. In the published `retroglyph-window` 0.3.1 the whole
-`frame_interval` branch is behind `#[cfg(not(target_arch = "wasm32"))]`, so on
-wasm `target_fps` is not ignored, it is compiled out, and the browser build
-freezes after one frame just the same. The harness therefore also injects one
-event per frame through the event-loop proxy, which sets `needs_redraw` and
-keeps `requestAnimationFrame` scheduling itself.
+**A sprite's pixels are not modulated by the cell's colors.** Both pixel
+backends blit sprite pixels verbatim and source-over composite them, so `fg` is
+not a tint and `bg` shows only through transparent pixels. A sprite sheet
+animates or recolors by *choosing different art*, not by shading one tile, which
+is why `17_tileset_sprites` animates its water by swapping between two water
+sprites along a moving band.
 
-Upstream already has the real fix (retroglyph's own examples animate in the
-browser); their unreleased tree moves the cfg to wrap only the *sleep*, leaving
-`request_redraw()` on the wasm path. The workaround comes out when a release
-carries it. See [retroglyph#510](https://github.com/crates-lurey-io/retroglyph/issues/510).
+**The winit driver only redraws on demand unless you opt out.** By default
+`about_to_wait` gates every redraw on something having happened (input, resize,
+an injected event) and otherwise leaves `ControlFlow::Wait` set, so an app that
+animates from `Frame::delta` advances only while you move the mouse. That suits
+an idle terminal-style app and nothing in this gallery, so the harness builds its
+window config with `WindowConfig::animated(&renderer, title, 60)`, which is
+`fit` with `event_driven: false`: render every tick, capped at 60.
+
+The frame-rate cap and the redraw trigger are independent controls and both
+apply on wasm, so nothing extra is needed there. This used to require a
+workaround: `target_fps` was compiled out of the wasm build entirely, and the
+harness injected one event per frame through the event-loop proxy just to keep
+`requestAnimationFrame` scheduling itself. Fixed upstream in
+[retroglyph#520](https://github.com/crates-lurey-io/retroglyph/pull/520) and
+[#418](https://github.com/crates-lurey-io/retroglyph/pull/418); the pump is gone.
+
+**A driver presents the frame, so `Demo::tick` must not.** Every driver
+(`run_blocking`, both windowed drivers) calls `Terminal::present` once `tick`
+returns, skipping it if the app already presented. Demos here draw through
+`Terminal::surface` and return; the callers with no driver behind them (the
+headless renders, the snapshot helpers, the `wasm-terminal` FFI tick) present
+around `tick` themselves.
 
 **The windowed drivers do not resize the terminal.** They resize the backend's
 surface and push an `Event::Resize`, but never call `Terminal::resize`, and the
@@ -200,11 +232,13 @@ frame, compares it against several later ones, and fails if nothing moved. A
 demo that has stopped animating still screenshots perfectly, so nothing else
 in CI would catch it.
 
-One demo ships no thumbnail. `17_tileset_sprites` draws 16x16 sprites across
-two 8x16 cells via the tileset's `spacing(2, 1)`; the surfaced renderer honors
-that and the headless one blits only the first cell, so the map comes out
-striped. Its card falls back to a placeholder rather than showing a picture
-that suggests the demo is broken when the page itself is fine.
+The tool declares a real `software` feature, on by default, and that matters:
+including a demo's source resolves its `#[cfg(feature = ...)]` against the
+*tool's* features, so without it `Demo::configure_software` is cfg'd out, the
+trait's do-nothing default is used, and a demo that registers a tileset renders
+its sprite codepoints as the font's fallback glyph instead. That was the real
+cause of `17_tileset_sprites` coming out striped, which used to be attributed to
+the headless renderer and excluded the demo from the gallery entirely.
 
 The gallery needs nothing else: `tools/build-wasm-gallery.sh` finds demos by
 globbing `examples/examples/*.rs` and reads each one's title, blurb, and key
