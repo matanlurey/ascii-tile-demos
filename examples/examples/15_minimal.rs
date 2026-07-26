@@ -33,9 +33,9 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Style, Surface, Terminal};
 
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS};
 use tilekit::camera::TileCamera;
@@ -242,7 +242,7 @@ impl Minimal {
         0.65f32.mul_add(eased, 0.35)
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: retroglyph_core::Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: retroglyph_core::Rect) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (left, top, right, bottom) = self.camera.visible_cells();
@@ -280,7 +280,7 @@ impl Minimal {
                     color = mix(color, palette::rgb(255, 236, 170), 0.5);
                 }
 
-                term.put_styled(sx, sy, ' ', Style::new().bg(color));
+                surface.put((sx, sy), ' ', Style::new().bg(color));
             }
         }
     }
@@ -319,14 +319,13 @@ impl Demo for Minimal {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-        let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

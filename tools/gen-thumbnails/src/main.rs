@@ -22,6 +22,12 @@
 //! cargo run -p gen-thumbnails -- dist
 //! ```
 
+// Including a demo's source also expands its `demo_main!`, and every
+// `#[cfg(feature = "software" | "gl" | ...)]` in it resolves against this
+// crate, which has no such features. See the note in `Cargo.toml` for why they
+// are not declared as stubs.
+#![allow(unexpected_cfgs)]
+
 use std::path::{Path, PathBuf};
 
 use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS, block_tileset};
@@ -98,6 +104,9 @@ const FRAME_DELTA: std::time::Duration = std::time::Duration::from_millis(1000 /
 /// from "something moved", and every demo here moves far more than this.
 const MIN_CHANGED_PIXELS: usize = 4;
 
+/// Demos in the gallery, for the closing summary line.
+const DEMO_COUNT: usize = 17;
+
 /// Demos that are correctly still when left alone.
 ///
 /// An explicit list rather than a softer check, because "this demo stopped
@@ -109,24 +118,6 @@ const STATIC_BY_DESIGN: &[(&str, &str)] = &[(
     "12_relief",
     "the sun orbits only while `O` is toggled on, so that the relief-inversion \
      point can be studied at a fixed azimuth",
-)];
-
-/// Demos this tool cannot render faithfully, and why.
-///
-/// A wrong thumbnail is worse than none: it tells a visitor the demo is broken
-/// when the page they would land on is fine. The gallery falls back to a
-/// placeholder card for anything listed here.
-///
-/// `17_tileset_sprites` renders its 16x16 sprites over two 8x16 cells via the
-/// tileset's `spacing(2, 1)`. The surfaced renderer honors that; the headless
-/// one blits only the sprite's first cell, so every second column keeps
-/// whatever was underneath and the map comes out in vertical stripes. The live
-/// page is correct, which is why this is a fidelity limit of the headless
-/// renderer rather than a demo bug. Confirmed independent of grid size and of
-/// whether the block tileset is also registered.
-const UNRENDERABLE_HEADLESS: &[(&str, &str)] = &[(
-    "17_tileset_sprites",
-    "the headless renderer blits multi-cell sprites into a single cell",
 )];
 
 /// Builds the backend a demo would get from `run_software`.
@@ -163,6 +154,10 @@ fn render<D: Demo>(frames: u32) -> (Vec<u32>, u32, u32) {
         if !demo.tick(&mut term, &frame) {
             break;
         }
+        // `tick` no longer presents itself (a driver does that, and there is
+        // no driver here), so without this the pixel buffer read below would
+        // be whatever the backend was initialized with.
+        term.present().expect("headless present cannot fail");
     }
 
     // Ask the presenter for its cell size rather than deriving dimensions from
@@ -211,10 +206,6 @@ fn write_png(path: &Path, pixels: &[u32], width: u32, height: u32) -> std::io::R
 
 /// Renders one demo's thumbnail and reports the most pixels it moved across
 /// any of the [`ANIMATION_FRAMES`] samples.
-///
-/// Still runs the animation check for [`UNRENDERABLE_HEADLESS`] demos: the
-/// pixels are wrong, but "did any of them change" is still a valid question
-/// and still catches a frozen tick.
 fn thumbnail<D: Demo>(out: &Path, slug: &str) -> std::io::Result<usize> {
     let (settled, width, height) = render::<D>(SETTLE_FRAMES);
 
@@ -231,9 +222,7 @@ fn thumbnail<D: Demo>(out: &Path, slug: &str) -> std::io::Result<usize> {
         }
     }
 
-    if !UNRENDERABLE_HEADLESS.iter().any(|(name, _)| *name == slug) {
-        write_png(&out.join(slug).join("thumb.png"), &settled, width, height)?;
-    }
+    write_png(&out.join(slug).join("thumb.png"), &settled, width, height)?;
     Ok(changed)
 }
 
@@ -247,8 +236,6 @@ macro_rules! capture {
             "  {:<22} {changed:>7} px changed  {}",
             $slug,
             match (moved, expected_still) {
-                _ if UNRENDERABLE_HEADLESS.iter().any(|(n, _)| *n == $slug) =>
-                    "animating, no thumbnail (see UNRENDERABLE_HEADLESS)",
                 (true, false) => "animating",
                 (false, true) => "still (by design)",
                 (true, true) => "animating (expected still)",
@@ -299,10 +286,6 @@ fn main() -> std::io::Result<()> {
         std::process::exit(1);
     }
 
-    println!(
-        "\nWrote {} thumbnails to {}",
-        17 - UNRENDERABLE_HEADLESS.len(),
-        out.display()
-    );
+    println!("\nWrote {DEMO_COUNT} thumbnails to {}", out.display());
     Ok(())
 }

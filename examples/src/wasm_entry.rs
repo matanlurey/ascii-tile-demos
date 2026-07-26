@@ -174,6 +174,10 @@ macro_rules! __wasm_terminal_entry {
                     s.last_tick = now;
                     s.frame_count = s.frame_count.wrapping_add(1);
                     $crate::Demo::tick(&mut s.demo, &mut s.term, &frame);
+                    // JS drives this loop, so there is no `retroglyph` driver
+                    // to present after `tick` returns; without this the
+                    // backend has no output to hand back.
+                    let _ = ::retroglyph_core::Terminal::present(&mut s.term);
                     s.term.backend_mut().take_output()
                 })
             }

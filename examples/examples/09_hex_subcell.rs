@@ -53,7 +53,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
 use ascii_tile_demos::ui;
@@ -152,7 +152,7 @@ impl HexSubcell {
         })
     }
 
-    fn draw_braille<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_braille(&self, surface: &mut Surface<'_>, area: Rect) {
         let (cols, rows) = (area.width(), area.height());
         let mut canvas = BrailleCanvas::new(cols, rows);
         let (dot_w, dot_h) = canvas.size();
@@ -183,9 +183,8 @@ impl HexSubcell {
         let fg = palette::rgb(140, 200, 255);
         for (col, row, glyph) in canvas.cells() {
             if glyph != '\u{2800}' {
-                term.put_styled(
-                    area.left() + col,
-                    area.top() + row,
+                surface.put(
+                    (area.left() + col, area.top() + row),
                     glyph,
                     Style::new().fg(fg).bg(ui::BG),
                 );
@@ -193,7 +192,7 @@ impl HexSubcell {
         }
     }
 
-    fn draw_quadrant<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_quadrant(&self, surface: &mut Surface<'_>, area: Rect) {
         let (cols, rows) = (area.width(), area.height());
         let mut canvas = QuadrantCanvas::new(cols, rows, ui::BG);
         let (dot_w, dot_h) = canvas.size();
@@ -217,16 +216,15 @@ impl HexSubcell {
         }
 
         for (col, row, glyph) in canvas.cells() {
-            term.put_styled(
-                area.left() + col,
-                area.top() + row,
+            surface.put(
+                (area.left() + col, area.top() + row),
                 glyph.ch,
                 Style::new().fg(glyph.fg).bg(glyph.bg),
             );
         }
     }
 
-    fn draw_quantized<B: Backend>(term: &mut Terminal<B>, area: Rect) {
+    fn draw_quantized(surface: &mut Surface<'_>, area: Rect) {
         // The comparison case: HexLayout's own cell-snapped hex, drawn at
         // POINTY_LARGE's fixed 12x4 pitch (its geometry has no continuous
         // size knob, which is exactly the limitation this view exists to
@@ -245,27 +243,34 @@ impl HexSubcell {
                 (0, w)
             };
             for dx in lo..hi {
-                put_clipped(term, area, cx + dx, cy + dy, ' ', Style::new().bg(fill));
+                put_clipped(surface, area, cx + dx, cy + dy, ' ', Style::new().bg(fill));
             }
         }
         let edge = palette::rgb(230, 210, 244);
         let edge_style = Style::new().fg(edge).bg(fill);
         for dx in 0..taper {
-            put_clipped(term, area, cx + taper - 1 - dx, cy, '/', edge_style);
-            put_clipped(term, area, cx + w - taper + dx, cy, '\\', edge_style);
+            put_clipped(surface, area, cx + taper - 1 - dx, cy, '/', edge_style);
+            put_clipped(surface, area, cx + w - taper + dx, cy, '\\', edge_style);
             put_clipped(
-                term,
+                surface,
                 area,
                 cx + taper - 1 - dx,
                 cy + h - 1,
                 '\\',
                 edge_style,
             );
-            put_clipped(term, area, cx + w - taper + dx, cy + h - 1, '/', edge_style);
+            put_clipped(
+                surface,
+                area,
+                cx + w - taper + dx,
+                cy + h - 1,
+                '/',
+                edge_style,
+            );
         }
         for dy in 1..h - 1 {
-            put_clipped(term, area, cx, cy + dy, '|', edge_style);
-            put_clipped(term, area, cx + w - 1, cy + dy, '|', edge_style);
+            put_clipped(surface, area, cx, cy + dy, '|', edge_style);
+            put_clipped(surface, area, cx + w - 1, cy + dy, '|', edge_style);
         }
     }
 
@@ -340,20 +345,13 @@ fn plot_line_colored(
 }
 
 /// [`Terminal::put_styled`] with clipping to `area`.
-fn put_clipped<B: Backend>(
-    term: &mut Terminal<B>,
-    area: Rect,
-    x: i32,
-    y: i32,
-    glyph: char,
-    style: Style,
-) {
+fn put_clipped(surface: &mut Surface<'_>, area: Rect, x: i32, y: i32, glyph: char, style: Style) {
     if x >= i32::from(area.left())
         && x < i32::from(area.right())
         && y >= i32::from(area.top())
         && y < i32::from(area.bottom())
     {
-        term.put_styled(x as u16, y as u16, glyph, style);
+        surface.put((x as u16, y as u16), glyph, style);
     }
 }
 
@@ -374,17 +372,17 @@ impl Demo for HexSubcell {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        match self.view {
-            View::Braille => self.draw_braille(term, content),
-            View::Quadrant => self.draw_quadrant(term, content),
-            View::Quantized => Self::draw_quantized(term, content),
-        }
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        match self.view {
+            View::Braille => self.draw_braille(&mut surface, content),
+            View::Quadrant => self.draw_quadrant(&mut surface, content),
+            View::Quantized => Self::draw_quantized(&mut surface, content),
+        }
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

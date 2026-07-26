@@ -44,7 +44,7 @@
 use std::collections::HashMap;
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
@@ -292,9 +292,9 @@ impl HexTiles {
     /// Draws one hex's footprint into `area`, clipped, at world-cell offset
     /// `(sx, sy)` (the hex's top-left bounding-box corner in screen space).
     #[allow(clippy::too_many_arguments)]
-    fn draw_hex<B: Backend>(
+    fn draw_hex(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         area: Rect,
         sx: i32,
         sy: i32,
@@ -338,7 +338,7 @@ impl HexTiles {
             for dx in taper..(pitch_x - taper) {
                 let (px, py) = (sx + dx, sy + dy);
                 let bg = bevel(face, dx - taper, dy, pitch_x - 2 * taper, rows);
-                put_clipped(term, area, px, py, ' ', Style::new().bg(bg));
+                put_clipped(surface, area, px, py, ' ', Style::new().bg(bg));
             }
         }
 
@@ -358,18 +358,18 @@ impl HexTiles {
                 );
                 if data.river && their.river {
                     let style = Style::new().fg(palette::rgb(120, 182, 235)).bg(face);
-                    put_clipped(term, area, center_x + dx * 2, center_y + dy, '~', style);
+                    put_clipped(surface, area, center_x + dx * 2, center_y + dy, '~', style);
                 }
                 if data.road && their.road {
                     let style = Style::new().fg(palette::rgb(214, 196, 156)).bg(face);
-                    put_clipped(term, area, center_x + dx * 3, center_y - dy, '.', style);
+                    put_clipped(surface, area, center_x + dx * 3, center_y - dy, '.', style);
                 }
             }
         }
 
         let glyph_style = Style::new().fg(data.biome.glyph_fg()).bg(face);
         put_clipped(
-            term,
+            surface,
             area,
             center_x,
             center_y,
@@ -380,7 +380,7 @@ impl HexTiles {
         if let Some(site) = data.site {
             let (marker, marker_color) = site.glyph_color();
             let style = Style::new().fg(marker_color).bg(face);
-            put_clipped(term, area, center_x + 1, center_y, marker, style);
+            put_clipped(surface, area, center_x + 1, center_y, marker, style);
         }
     }
 
@@ -398,7 +398,7 @@ impl HexTiles {
         })
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: Rect) {
         let (pitch_x, pitch_y) = (self.layout.pitch_x, self.layout.pitch_y);
         let margin_cols = i32::from(area.width()) / pitch_x + 2;
         let margin_rows = i32::from(area.height()) / pitch_y + 2;
@@ -436,7 +436,16 @@ impl HexTiles {
                 } else {
                     0.0
                 };
-                self.draw_hex(term, area, sx, sy, tile, data, highlight, pulse.max(0.35));
+                self.draw_hex(
+                    surface,
+                    area,
+                    sx,
+                    sy,
+                    tile,
+                    data,
+                    highlight,
+                    pulse.max(0.35),
+                );
             }
         }
     }
@@ -480,20 +489,13 @@ fn bevel(face: Color, dx: i32, dy: i32, w: i32, h: i32) -> Color {
 
 /// [`Terminal::put_styled`] with clipping to `area`, since hexes at the map
 /// edge legitimately hang partly outside the viewport.
-fn put_clipped<B: Backend>(
-    term: &mut Terminal<B>,
-    area: Rect,
-    x: i32,
-    y: i32,
-    glyph: char,
-    style: Style,
-) {
+fn put_clipped(surface: &mut Surface<'_>, area: Rect, x: i32, y: i32, glyph: char, style: Style) {
     if x >= i32::from(area.left())
         && x < i32::from(area.right())
         && y >= i32::from(area.top())
         && y < i32::from(area.bottom())
     {
-        term.put_styled(x as u16, y as u16, glyph, style);
+        surface.put((x as u16, y as u16), glyph, style);
     }
 }
 
@@ -538,13 +540,13 @@ impl Demo for HexTiles {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

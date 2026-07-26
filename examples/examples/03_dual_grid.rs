@@ -47,10 +47,10 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use tilekit::autotile::DualGrid;
 use tilekit::geom::Cell;
@@ -159,16 +159,15 @@ impl DualGridDemo {
     }
 
     /// Left half: one glyph per world cell, land or water, no in-between.
-    fn draw_naive<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_naive(&self, surface: &mut Surface<'_>, area: Rect) {
         for row in 0..i32::from(area.height()) {
             for col in 0..i32::from(area.width()) {
                 let (wx, wy) = (self.origin.x + col, self.origin.y + row);
                 let land = self.is_land(wx, wy);
                 let color = if land { LAND } else { WATER };
                 let glyph = if land { '#' } else { '~' };
-                term.put_styled(
-                    area.left() + col as u16,
-                    area.top() + row as u16,
+                surface.put(
+                    (area.left() + col as u16, area.top() + row as u16),
                     glyph,
                     Style::new().fg(mix(color, palette::WHITE, 0.25)).bg(color),
                 );
@@ -180,7 +179,7 @@ impl DualGridDemo {
     /// tile whose four corner samples are world cells offset by
     /// [`DualGrid::display_origin`] from the naive grid, so the same world
     /// region produces a display grid one cell larger on every side.
-    fn draw_dual_grid<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_dual_grid(&self, surface: &mut Surface<'_>, area: Rect) {
         let (offset_x, offset_y) = DualGrid::display_origin(2, 2);
         for row in 0..i32::from(area.height()) {
             for col in 0..i32::from(area.width()) {
@@ -218,9 +217,8 @@ impl DualGridDemo {
                 } else {
                     Style::new().fg(fg).bg(bg)
                 };
-                term.put_styled(
-                    area.left() + col as u16,
-                    area.top() + row as u16,
+                surface.put(
+                    (area.left() + col as u16, area.top() + row as u16),
                     glyph,
                     style,
                 );
@@ -236,9 +234,8 @@ impl DualGridDemo {
                     if (col + row) % 2 == 0 {
                         continue;
                     }
-                    term.put_styled(
-                        area.left() + col as u16,
-                        area.top() + row as u16,
+                    surface.put(
+                        (area.left() + col as u16, area.top() + row as u16),
                         '\u{00b7}',
                         Style::new()
                             .fg(palette::rgb(255, 255, 255))
@@ -249,7 +246,7 @@ impl DualGridDemo {
         }
     }
 
-    fn draw<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw(&self, surface: &mut Surface<'_>, area: Rect) {
         if area.width() < 4 || area.height() == 0 {
             return;
         }
@@ -262,28 +259,25 @@ impl DualGridDemo {
             area.height(),
         );
 
-        self.draw_naive(term, left);
-        self.draw_dual_grid(term, right);
+        self.draw_naive(surface, left);
+        self.draw_dual_grid(surface, right);
 
         // A one-cell divider plus labels, drawn last so they sit on top of
         // both halves.
         for y in area.top()..area.bottom() {
-            term.put_styled(
-                right.left(),
-                y,
+            surface.put(
+                (right.left(), y),
                 '\u{2502}',
                 Style::new().fg(ui::DIM).bg(ui::BG),
             );
         }
-        term.print_styled_str(
-            left.left() + 1,
-            area.top(),
+        surface.print(
+            (left.left() + 1, area.top()),
             "NAIVE (per-cell)",
             Style::new().fg(ui::FG).bg(mix(LAND, ui::BG, 0.5)),
         );
-        term.print_styled_str(
-            right.left() + 2,
-            area.top(),
+        surface.print(
+            (right.left() + 2, area.top()),
             "DUAL GRID (quadrant glyphs)",
             Style::new().fg(ui::FG).bg(mix(LAND, ui::BG, 0.5)),
         );
@@ -332,13 +326,13 @@ impl Demo for DualGridDemo {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

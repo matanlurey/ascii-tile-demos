@@ -37,7 +37,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode};
-use retroglyph_core::{Backend, Color, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
 use ascii_tile_demos::ui;
@@ -192,7 +192,7 @@ impl SubcellCanvas {
         }
     }
 
-    fn draw<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw(&self, surface: &mut Surface<'_>, area: Rect) {
         if area.width() == 0 || area.height() == 0 {
             return;
         }
@@ -200,11 +200,11 @@ impl SubcellCanvas {
         let sweep_x = self.sweep_x(view_w);
 
         match self.mode {
-            Mode::Plain => self.draw_plain(term, area, sweep_x),
-            Mode::HalfBlock => self.draw_half_block(term, area, sweep_x),
-            Mode::Quadrant => self.draw_quadrant(term, area, sweep_x),
-            Mode::Sextant => self.draw_sextant(term, area, sweep_x),
-            Mode::Braille => self.draw_braille(term, area, sweep_x),
+            Mode::Plain => self.draw_plain(surface, area, sweep_x),
+            Mode::HalfBlock => self.draw_half_block(surface, area, sweep_x),
+            Mode::Quadrant => self.draw_quadrant(surface, area, sweep_x),
+            Mode::Sextant => self.draw_sextant(surface, area, sweep_x),
+            Mode::Braille => self.draw_braille(surface, area, sweep_x),
         }
     }
 
@@ -216,16 +216,15 @@ impl SubcellCanvas {
         (fx, fy)
     }
 
-    fn draw_plain<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, sweep_x: f32) {
+    fn draw_plain(&self, surface: &mut Surface<'_>, area: Rect, sweep_x: f32) {
         for y in 0..area.height() {
             for x in 0..area.width() {
                 let (fx, fy) = self.field_coord(f32::from(x), f32::from(y), 1.0, 1.0);
                 let elevation = self.elevation_at(fx, fy);
                 let glyph = ramp_glyph(&SHADE, elevation);
                 let color = self.color_at(fx, fy, sweep_x);
-                term.put_styled(
-                    area.left() + x,
-                    area.top() + y,
+                surface.put(
+                    (area.left() + x, area.top() + y),
                     glyph,
                     Style::new().fg(color).bg(ui::BG),
                 );
@@ -233,7 +232,7 @@ impl SubcellCanvas {
         }
     }
 
-    fn draw_half_block<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, sweep_x: f32) {
+    fn draw_half_block(&self, surface: &mut Surface<'_>, area: Rect, sweep_x: f32) {
         let mut canvas = HalfBlockCanvas::new(area.width(), area.height(), ui::BG);
         let (sw, sh) = canvas.size();
         for sy in 0..sh {
@@ -243,16 +242,15 @@ impl SubcellCanvas {
             }
         }
         for (col, row, glyph) in canvas.cells() {
-            term.put_styled(
-                area.left() + col,
-                area.top() + row,
+            surface.put(
+                (area.left() + col, area.top() + row),
                 glyph.ch,
                 Style::new().fg(glyph.fg).bg(glyph.bg),
             );
         }
     }
 
-    fn draw_quadrant<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, sweep_x: f32) {
+    fn draw_quadrant(&self, surface: &mut Surface<'_>, area: Rect, sweep_x: f32) {
         let mut canvas = QuadrantCanvas::new(area.width(), area.height(), ui::BG);
         let (sw, sh) = canvas.size();
         for sy in 0..sh {
@@ -262,16 +260,15 @@ impl SubcellCanvas {
             }
         }
         for (col, row, glyph) in canvas.cells() {
-            term.put_styled(
-                area.left() + col,
-                area.top() + row,
+            surface.put(
+                (area.left() + col, area.top() + row),
                 glyph.ch,
                 Style::new().fg(glyph.fg).bg(glyph.bg),
             );
         }
     }
 
-    fn draw_sextant<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, sweep_x: f32) {
+    fn draw_sextant(&self, surface: &mut Surface<'_>, area: Rect, sweep_x: f32) {
         let mut canvas = SextantCanvas::new(area.width(), area.height(), ui::BG);
         let (sw, sh) = canvas.size();
         for sy in 0..sh {
@@ -281,9 +278,8 @@ impl SubcellCanvas {
             }
         }
         for (col, row, glyph) in canvas.cells() {
-            term.put_styled(
-                area.left() + col,
-                area.top() + row,
+            surface.put(
+                (area.left() + col, area.top() + row),
                 glyph.ch,
                 Style::new().fg(glyph.fg).bg(glyph.bg),
             );
@@ -295,7 +291,7 @@ impl SubcellCanvas {
     /// to the animated sweep, producing a moving contour-like silhouette
     /// rather than a shaded relief. This is the honest way to show a scalar
     /// field in a canvas that only has "dot" and "no dot" to work with.
-    fn draw_braille<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, sweep_x: f32) {
+    fn draw_braille(&self, surface: &mut Surface<'_>, area: Rect, sweep_x: f32) {
         let mut canvas = BrailleCanvas::new(area.width(), area.height());
         let (sw, sh) = canvas.size();
         for sy in 0..sh {
@@ -334,9 +330,8 @@ impl SubcellCanvas {
             }
         }
         for (col, row, glyph) in canvas.cells() {
-            term.put_styled(
-                area.left() + col,
-                area.top() + row,
+            surface.put(
+                (area.left() + col, area.top() + row),
                 glyph,
                 Style::new().fg(palette::rgb(140, 200, 255)).bg(ui::BG),
             );
@@ -383,18 +378,18 @@ impl Demo for SubcellCanvas {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw(term, content);
-        ui::title_bar::<B, Self>(term, title);
+
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
         let text = format!(
             "{}  {}  seed {}",
             self.mode.label(),
             self.resolution_text(content),
             self.seed
         );
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-
-        term.present().ok();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

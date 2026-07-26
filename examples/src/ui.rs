@@ -6,7 +6,7 @@
 //! focused on the technique it's actually demonstrating.
 
 use retroglyph_core::event::{Event, KeyCode};
-use retroglyph_core::{Backend, Color, Rect, Style, Terminal};
+use retroglyph_core::{Color, Rect, Style, Surface};
 use retroglyph_widgets::truncate;
 
 use crate::Demo;
@@ -78,30 +78,49 @@ pub fn split_chrome(screen: Rect) -> (Rect, Rect, Rect) {
 /// Deliberately an explicit space rather than a cleared cell: a cleared cell is
 /// transparent and composites whatever the layer below drew, which is exactly
 /// wrong for chrome that must occlude the map behind it.
-pub fn fill<B: Backend>(term: &mut Terminal<B>, rect: Rect, style: Style) {
-    for y in rect.top()..rect.bottom() {
-        for x in rect.left()..rect.right() {
-            term.put_styled(x, y, ' ', style);
-        }
-    }
+pub fn fill(surface: &mut Surface<'_>, rect: Rect, style: Style) {
+    surface.fill_rect(rect, ' ', style);
+}
+
+/// A [`Surface`] over the same grid and layer as `surface`, but clipping to
+/// `area` instead of `surface`'s own area.
+///
+/// Coordinates are unchanged (both areas live in the grid's space), so this is
+/// purely a tighter clip. The chrome bars need it because [`Surface::print`]
+/// *wraps* text that runs past the right edge onto the next row: printing a
+/// too-long title into a whole-screen surface would spill the overflow across
+/// the top row of the map. Clipped to a 1-row bar, the wrapped remainder falls
+/// outside the area and is dropped, which is what a single-line bar wants.
+///
+/// It is also what makes [`Surface::put_span`] usable for a map drawn inside a
+/// sub-rect: a span refuses to write unless its whole footprint fits the
+/// surface's area, and "fits the screen" is the wrong question when the map
+/// stops one row above the status bar.
+///
+/// Goes through [`Surface::grid_mut`] because `Surface` has no narrowing
+/// constructor of its own; see
+/// <https://github.com/crates-lurey-io/retroglyph/issues/535>.
+pub const fn clip<'g>(surface: &'g mut Surface<'_>, area: Rect) -> Surface<'g> {
+    let layer = surface.layer();
+    Surface::new(surface.grid_mut(), area, layer)
 }
 
 /// Draws the top bar: demo number and title on the left, blurb on the right if
 /// it fits.
-pub fn title_bar<B: Backend, D: Demo>(term: &mut Terminal<B>, area: Rect) {
+pub fn title_bar<D: Demo>(surface: &mut Surface<'_>, area: Rect) {
     if area.height() == 0 {
         return;
     }
-    fill(term, area, Style::new().bg(CHROME_BG));
+    let mut bar = clip(surface, area);
+    bar.fill_rect(area, ' ', Style::new().bg(CHROME_BG));
     let w = area.width_usize();
     if w < 4 {
         return;
     }
 
     let title = format!(" {} ", D::TITLE);
-    term.print_styled_str(
-        area.left(),
-        area.top(),
+    bar.print(
+        (area.left(), area.top()),
         truncate(&title, w),
         Style::new().fg(ACCENT).bg(CHROME_BG),
     );
@@ -111,9 +130,8 @@ pub fn title_bar<B: Backend, D: Demo>(term: &mut Terminal<B>, area: Rect) {
     let used = title.chars().count();
     let room = w.saturating_sub(used + 2);
     if room >= 24 {
-        term.print_styled_str(
-            area.left() + used as u16 + 1,
-            area.top(),
+        bar.print(
+            (area.left() + used as u16 + 1, area.top()),
             truncate(D::BLURB, room),
             Style::new().fg(DIM).bg(CHROME_BG),
         );
@@ -122,29 +140,25 @@ pub fn title_bar<B: Backend, D: Demo>(term: &mut Terminal<B>, area: Rect) {
 
 /// Draws the bottom bar: `left` (whatever the demo wants to say about its own
 /// state) then the key hints, with the FPS readout pinned to the right edge.
-pub fn status_bar<B: Backend, D: Demo>(
-    term: &mut Terminal<B>,
-    area: Rect,
-    left: &str,
-    fps: &FpsMeter,
-) {
+pub fn status_bar<D: Demo>(surface: &mut Surface<'_>, area: Rect, left: &str, fps: &FpsMeter) {
     if area.height() == 0 {
         return;
     }
-    fill(term, area, Style::new().bg(CHROME_BG));
+    let mut bar = clip(surface, area);
+    bar.fill_rect(area, ' ', Style::new().bg(CHROME_BG));
     let w = area.width_usize();
     if w < 4 {
         return;
     }
+    let y = area.top();
 
     // FPS first: it's fixed-width and right-anchored, so reserving it up front
     // means the variable-width left side can never overrun it.
     let fps_text = format!("{:>5.1} fps ", fps.fps());
     let fps_w = fps_text.chars().count();
     if w > fps_w {
-        term.print_styled_str(
-            area.right() - fps_w as u16,
-            area.top(),
+        bar.print(
+            (area.right() - fps_w as u16, y),
             &fps_text,
             Style::new().fg(DIM).bg(CHROME_BG),
         );
@@ -156,7 +170,7 @@ pub fn status_bar<B: Backend, D: Demo>(
 
     if !left.is_empty() {
         let text = truncate(left, room.saturating_sub(spent));
-        term.print_styled_str(x, area.top(), text, Style::new().fg(FG).bg(CHROME_BG));
+        bar.print((x, y), text, Style::new().fg(FG).bg(CHROME_BG));
         let n = text.chars().count();
         x += n as u16;
         spent += n;
@@ -170,15 +184,13 @@ pub fn status_bar<B: Backend, D: Demo>(
         if spent + n > room {
             break;
         }
-        term.print_styled_str(
-            x,
-            area.top(),
+        bar.print(
+            (x, y),
             &format!("  {keys} "),
             Style::new().fg(ACCENT).bg(CHROME_BG),
         );
-        term.print_styled_str(
-            x + keys.chars().count() as u16 + 3,
-            area.top(),
+        bar.print(
+            (x + keys.chars().count() as u16 + 3, y),
             what,
             Style::new().fg(DIM).bg(CHROME_BG),
         );
@@ -200,29 +212,6 @@ pub const fn is_quit(event: &Event) -> bool {
             key.is_down() && matches!(key.code, KeyCode::Char('q' | 'Q') | KeyCode::Escape)
         }
         _ => false,
-    }
-}
-
-/// Convenience extension for printing a plain `&str` with an explicit style.
-///
-/// `Terminal::print_styled` takes a [`Line`](retroglyph_core::Line) (a `Vec` of
-/// styled spans), which means an allocation and three lines of ceremony for
-/// what is overwhelmingly the common case in this gallery: one string, one
-/// style. `print_styled_str` is that case.
-pub trait PrintStr {
-    /// Prints `text` at `(x, y)` in `style`, clipped to the grid.
-    fn print_styled_str(&mut self, x: u16, y: u16, text: &str, style: Style);
-}
-
-impl<B: Backend> PrintStr for Terminal<B> {
-    fn print_styled_str(&mut self, x: u16, y: u16, text: &str, style: Style) {
-        let width = self.size().width;
-        for (cx, ch) in (x..).zip(text.chars()) {
-            if cx >= width {
-                break;
-            }
-            self.put_styled(cx, y, ch, style);
-        }
     }
 }
 

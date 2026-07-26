@@ -40,9 +40,9 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Surface, Terminal};
 
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS};
 use tilekit::camera::TileCamera;
@@ -379,7 +379,7 @@ impl Political {
         (glyph, fg, bg)
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: Rect) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (left, top, right, bottom) = self.camera.visible_cells();
@@ -396,7 +396,7 @@ impl Political {
 
                 if let Some(landmark) = self.world.landmark_at(wx, wy) {
                     let (marker, marker_color) = landmark.site.glyph_color();
-                    term.put_styled(sx, sy, marker, Style::new().fg(marker_color).bg(bg));
+                    surface.put((sx, sy), marker, Style::new().fg(marker_color).bg(bg));
                     continue;
                 }
 
@@ -404,11 +404,11 @@ impl Political {
                     bg = mix(bg, palette::rgb(255, 236, 170), 0.45);
                     fg = mix(fg, palette::WHITE, 0.30);
                 }
-                term.put_styled(sx, sy, glyph, Style::new().fg(fg).bg(bg));
+                surface.put((sx, sy), glyph, Style::new().fg(fg).bg(bg));
             }
         }
 
-        self.draw_labels(term, area);
+        self.draw_labels(surface, area);
     }
 
     /// Places capital labels with greedy overlap rejection: each label's
@@ -416,7 +416,7 @@ impl Political {
     /// this frame, and the label is simply dropped if it collides. Labels are
     /// considered in a stable order (world position) so which one wins a
     /// contested spot doesn't change frame to frame.
-    fn draw_labels<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_labels(&self, surface: &mut Surface<'_>, area: Rect) {
         let mut labels: Vec<Label> = self
             .world
             .landmarks
@@ -459,9 +459,8 @@ impl Political {
             let screen = self.camera.world_to_screen(label.anchor);
             let lx = area.left() + screen.x as u16 + 2;
             let ly = area.top() + screen.y as u16;
-            term.print_styled_str(
-                lx,
-                ly,
+            surface.print(
+                (lx, ly),
                 &label.text,
                 Style::new().fg(ui::FG).bg(mix(ui::BG, palette::BLACK, 0.4)),
             );
@@ -551,13 +550,13 @@ impl Demo for Political {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

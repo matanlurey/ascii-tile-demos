@@ -21,24 +21,22 @@ pub const fn rgb(red: u8, green: u8, blue: u8) -> Color {
 
 /// True RGB black.
 ///
-/// Not [`Color::BLACK`], which is `Ansi(Black)` and therefore *not* a valid
-/// input to [`mix`] or [`Color::lerp`]. See [`mix`] for why that distinction
-/// bites.
+/// Not [`Color::BLACK`], which is `Ansi(Black)`: an ANSI color resolves to
+/// whatever the terminal's palette says, so a blend against it is only as
+/// predictable as the user's theme. Every blend in this crate wants an exact
+/// value.
 pub const BLACK: Color = rgb(0, 0, 0);
 /// True RGB white. See [`BLACK`].
 pub const WHITE: Color = rgb(255, 255, 255);
 
-/// Blends `a` toward `b` by `t`, resolving non-RGB colors first.
+/// Blends `a` toward `b` by `t`, clamping `t` and resolving non-RGB inputs.
 ///
-/// Use this instead of [`Color::lerp`] anywhere either input might not be an
-/// `Rgb` variant. `Color::lerp` silently returns `a` unchanged if either input
-/// is `Default`, `Ansi`, or `Indexed`, which produces no error and no warning
-/// and no blend: the classic symptom is a hillshade pass that renders every
-/// cell pure black, because `Color::BLACK` is `Ansi(Black)` and the lerp
-/// against it is a no-op returning the black it started from.
-///
-/// Resolving through [`Color::resolve_rgb`] first means every input is a real
-/// color before any arithmetic happens, so the blend always actually blends.
+/// Overlaps [`Color::lerp`], which resolves non-`Rgb` inputs the same way, and
+/// exists for the two things it adds. `t` is clamped to `0.0..=1.0`, so an
+/// unclamped animation parameter cannot extrapolate past either endpoint into a
+/// wrapped channel; and the blend is per-channel in sRGB space with no
+/// dependency on `retroglyph-core`'s optional `gem` feature, which is what
+/// `Color::lerp` is gated behind.
 #[must_use]
 pub fn mix(a: Color, b: Color, t: f32) -> Color {
     let t = t.clamp(0.0, 1.0);
@@ -409,18 +407,24 @@ mod tests {
     }
 
     #[test]
-    fn mix_blends_where_color_lerp_silently_refuses() {
-        // The bug this function exists to prevent: Color::lerp against a
-        // non-Rgb color is a no-op that returns its first argument, so a
-        // hillshade written with Color::BLACK renders everything black.
+    fn mix_resolves_a_non_rgb_endpoint_instead_of_skipping_the_blend() {
+        // Blending against an `Ansi`/`Indexed`/`Default` color used to return
+        // the first argument unchanged, so a hillshade written against
+        // `Color::BLACK` (which is `Ansi(Black)`) rendered every cell black.
+        // Both this and `Color::lerp` resolve first now; this pins the
+        // behaviour rather than the historical bug.
         let ansi_black = Color::Ansi(AnsiColor::Black);
         let target = rgb(200, 100, 50);
-        assert_eq!(
-            Color::lerp(ansi_black, target, 1.0),
-            ansi_black,
-            "upstream lerp still has the behaviour we are guarding against"
-        );
         assert_eq!(channels(mix(ansi_black, target, 1.0)), (200, 100, 50));
+        assert_eq!(channels(mix(ansi_black, target, 0.0)), (0, 0, 0));
+    }
+
+    #[test]
+    fn mix_clamps_t_where_color_lerp_extrapolates() {
+        // The remaining reason to prefer `mix`: it is total over any `t`.
+        let (a, b) = (rgb(10, 20, 30), rgb(210, 220, 230));
+        assert_eq!(channels(mix(a, b, 2.0)), channels(b));
+        assert_eq!(channels(mix(a, b, -1.0)), channels(a));
     }
 
     #[test]

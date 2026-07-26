@@ -35,10 +35,10 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use tilekit::autotile::{
     self, DualGrid, blob_index, box_glyph, inside_corners, marching_case, marching_glyph, mask4,
@@ -207,9 +207,8 @@ impl AutotileGallery {
 
     /// Draws one panel: `sample(local_x, local_y) -> world (x, y)`, filling
     /// `area` one glyph per screen cell via `render`.
-    fn draw_panel<B, R>(term: &mut Terminal<B>, area: Rect, render: R)
+    fn draw_panel<R>(surface: &mut Surface<'_>, area: Rect, render: R)
     where
-        B: Backend,
         R: Fn(i32, i32) -> (char, retroglyph_core::Color, retroglyph_core::Color),
     {
         let inner = Rect::new(
@@ -221,9 +220,8 @@ impl AutotileGallery {
         for row in 0..i32::from(inner.height()) {
             for col in 0..i32::from(inner.width()) {
                 let (glyph, fg, bg) = render(col, row);
-                term.put_styled(
-                    inner.left() + col as u16,
-                    inner.top() + row as u16,
+                surface.put(
+                    (inner.left() + col as u16, inner.top() + row as u16),
                     glyph,
                     Style::new().fg(fg).bg(bg),
                 );
@@ -231,9 +229,9 @@ impl AutotileGallery {
         }
     }
 
-    fn draw_cardinal4<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_cardinal4(&self, surface: &mut Surface<'_>, area: Rect) {
         let ox = self.origin_x as i32;
-        Self::draw_panel(term, area, |col, row| {
+        Self::draw_panel(surface, area, |col, row| {
             let (x, y) = (ox + col, self.origin_y + row);
             let land = self.is_land(x, y);
             if !land {
@@ -253,10 +251,10 @@ impl AutotileGallery {
         });
     }
 
-    fn draw_blob47<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_blob47(&self, surface: &mut Surface<'_>, area: Rect) {
         let ox = self.origin_x as i32;
         let total = autotile::blob_count().max(1) as f32;
-        Self::draw_panel(term, area, |col, row| {
+        Self::draw_panel(surface, area, |col, row| {
             let (x, y) = (ox + col, self.origin_y + row);
             let land = self.is_land(x, y);
             if !land {
@@ -285,10 +283,10 @@ impl AutotileGallery {
         });
     }
 
-    fn draw_dual_grid<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_dual_grid(&self, surface: &mut Surface<'_>, area: Rect) {
         let ox = self.origin_x as i32;
         let (offset_x, offset_y) = DualGrid::display_origin(2, 2);
-        Self::draw_panel(term, area, |col, row| {
+        Self::draw_panel(surface, area, |col, row| {
             let (dx, dy) = (ox + col + offset_x, self.origin_y + row + offset_y);
             let samples = DualGrid::samples(dx + 1, dy + 1);
             let corners = samples.map(|(sx, sy)| self.is_land(sx, sy));
@@ -302,10 +300,10 @@ impl AutotileGallery {
         });
     }
 
-    fn draw_marching<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_marching(&self, surface: &mut Surface<'_>, area: Rect) {
         let ox = self.origin_x as i32;
         let (offset_x, offset_y) = DualGrid::display_origin(2, 2);
-        Self::draw_panel(term, area, |col, row| {
+        Self::draw_panel(surface, area, |col, row| {
             let (dx, dy) = (ox + col + offset_x, self.origin_y + row + offset_y);
             let samples = DualGrid::samples(dx + 1, dy + 1);
             let corners = samples.map(|(sx, sy)| self.is_land(sx, sy));
@@ -323,7 +321,7 @@ impl AutotileGallery {
         });
     }
 
-    fn draw<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw(&self, surface: &mut Surface<'_>, area: Rect) {
         if area.width() < 8 || area.height() < 4 {
             return;
         }
@@ -352,17 +350,16 @@ impl AutotileGallery {
         ];
 
         for (panel, rect) in Panel::ALL.into_iter().zip(quads) {
-            term.print_styled_str(
-                rect.left(),
-                rect.top(),
+            surface.print(
+                (rect.left(), rect.top()),
                 panel.label(),
                 Style::new().fg(ui::ACCENT).bg(ui::CHROME_BG),
             );
             match panel {
-                Panel::Cardinal4 => self.draw_cardinal4(term, rect),
-                Panel::Blob47 => self.draw_blob47(term, rect),
-                Panel::DualGrid => self.draw_dual_grid(term, rect),
-                Panel::Marching => self.draw_marching(term, rect),
+                Panel::Cardinal4 => self.draw_cardinal4(surface, rect),
+                Panel::Blob47 => self.draw_blob47(surface, rect),
+                Panel::DualGrid => self.draw_dual_grid(surface, rect),
+                Panel::Marching => self.draw_marching(surface, rect),
             }
         }
     }
@@ -424,13 +421,13 @@ impl Demo for AutotileGallery {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

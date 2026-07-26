@@ -24,9 +24,9 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Style, Surface, Terminal};
 
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS};
 use tilekit::camera::TileCamera;
@@ -181,7 +181,7 @@ impl TerrainCells {
 
         let mut shade = 1.0;
         if biome.is_water() {
-            // A travelling wave: the phase term makes the swell move diagonally
+            // A travelling wave: the phase surface makes the swell move diagonally
             // across the sea rather than every cell pulsing in unison.
             let phase = self
                 .time
@@ -211,7 +211,7 @@ impl TerrainCells {
         (glyph, color, bg)
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: retroglyph_core::Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: retroglyph_core::Rect) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (left, top, right, bottom) = self.camera.visible_cells();
@@ -231,7 +231,7 @@ impl TerrainCells {
                     bg = mix(bg, palette::rgb(255, 236, 170), 0.45);
                     color = mix(color, palette::WHITE, 0.30);
                 }
-                term.put_styled(sx, sy, glyph, Style::new().fg(color).bg(bg));
+                surface.put((sx, sy), glyph, Style::new().fg(color).bg(bg));
             }
         }
     }
@@ -302,16 +302,14 @@ impl Demo for TerrainCells {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-        // `print_styled_str` comes from the PrintStr extension trait; importing
-        // it here keeps the trait in scope for the chrome helpers above.
-        let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
+        // `print_styled_str` comes from the PrintStr extension trait; importing
         true
     }
 }

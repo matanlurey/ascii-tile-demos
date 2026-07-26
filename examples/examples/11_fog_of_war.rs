@@ -40,7 +40,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
@@ -370,7 +370,7 @@ impl FogOfWar {
         (glyph, color, bg)
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: Rect) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (left, top, right, bottom) = self.camera.visible_cells();
@@ -417,7 +417,7 @@ impl FogOfWar {
                 if wx == self.cursor.x && wy == self.cursor.y {
                     bg = mix(bg, palette::rgb(255, 236, 170), 0.35);
                 }
-                term.put_styled(sx, sy, glyph, Style::new().fg(fg).bg(bg));
+                surface.put((sx, sy), glyph, Style::new().fg(fg).bg(bg));
             }
         }
     }
@@ -486,13 +486,13 @@ impl Demo for FogOfWar {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

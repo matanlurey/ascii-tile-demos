@@ -45,7 +45,7 @@
 use std::collections::HashMap;
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
@@ -251,9 +251,9 @@ impl HexOutline {
     /// are both full width with vertical edges at the far left and right
     /// column; drawing the taper on rows 0 and 3 and verticals through rows
     /// 1..3 produces a closed hexagonal boundary with no gaps.
-    fn draw_hex<B: Backend>(
+    fn draw_hex(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         area: Rect,
         sx: i32,
         sy: i32,
@@ -272,7 +272,7 @@ impl HexOutline {
         for dy in 0..h {
             let (lo, hi) = row_span(dy, h, taper, w);
             for dx in lo..hi {
-                put_clipped(term, area, sx + dx, sy + dy, ' ', Style::new().bg(fill));
+                put_clipped(surface, area, sx + dx, sy + dy, ' ', Style::new().bg(fill));
             }
         }
 
@@ -285,7 +285,7 @@ impl HexOutline {
             palette::rgb(24, 26, 32)
         };
         put_clipped(
-            term,
+            surface,
             area,
             sx + w / 2,
             sy + h / 2,
@@ -308,34 +308,34 @@ impl HexOutline {
         // peak. A pointy-top hex's top is a shallow peak, not a flat edge, so
         // both diagonals meet at one cell in the middle of the top row.
         for dx in 0..taper {
-            put_clipped(term, area, sx + taper - 1 - dx, sy, up, edge);
-            put_clipped(term, area, sx + w - taper + dx, sy, down, edge);
+            put_clipped(surface, area, sx + taper - 1 - dx, sy, up, edge);
+            put_clipped(surface, area, sx + w - taper + dx, sy, down, edge);
         }
         // Bottom taper mirrors the top with the diagonals swapped, since a
         // falling-left edge on top is a rising-left edge on the bottom.
         for dx in 0..taper {
-            put_clipped(term, area, sx + taper - 1 - dx, sy + h - 1, down, edge);
-            put_clipped(term, area, sx + w - taper + dx, sy + h - 1, up, edge);
+            put_clipped(surface, area, sx + taper - 1 - dx, sy + h - 1, down, edge);
+            put_clipped(surface, area, sx + w - taper + dx, sy + h - 1, up, edge);
         }
         // Vertical west/east edges through the two middle rows.
         for dy in 1..h - 1 {
-            put_clipped(term, area, sx, sy + dy, '|', edge);
-            put_clipped(term, area, sx + w - 1, sy + dy, '|', edge);
+            put_clipped(surface, area, sx, sy + dy, '|', edge);
+            put_clipped(surface, area, sx + w - 1, sy + dy, '|', edge);
         }
         // A short horizontal cap where the taper meets the middle band on
         // each side, closing the hexagon's shoulder rather than leaving a
         // one-cell notch between the diagonal and the vertical.
-        put_clipped(term, area, sx, sy, horiz, edge);
-        put_clipped(term, area, sx + w - 1, sy, horiz, edge);
-        put_clipped(term, area, sx, sy + h - 1, horiz, edge);
-        put_clipped(term, area, sx + w - 1, sy + h - 1, horiz, edge);
+        put_clipped(surface, area, sx, sy, horiz, edge);
+        put_clipped(surface, area, sx + w - 1, sy, horiz, edge);
+        put_clipped(surface, area, sx, sy + h - 1, horiz, edge);
+        put_clipped(surface, area, sx + w - 1, sy + h - 1, horiz, edge);
     }
 
     /// Draws heavier edges over [`draw_hex`]'s base grid wherever a neighbor
     /// in that direction belongs to a different province.
-    fn draw_province_borders<B: Backend>(
+    fn draw_province_borders(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         area: Rect,
         sx: i32,
         sy: i32,
@@ -353,28 +353,28 @@ impl HexOutline {
 
         if differs(3) {
             for dy in 1..h - 1 {
-                put_clipped(term, area, sx, sy + dy, '\u{2588}', heavy);
+                put_clipped(surface, area, sx, sy + dy, '\u{2588}', heavy);
             }
         }
         if differs(0) {
             for dy in 1..h - 1 {
-                put_clipped(term, area, sx + w - 1, sy + dy, '\u{2588}', heavy);
+                put_clipped(surface, area, sx + w - 1, sy + dy, '\u{2588}', heavy);
             }
         }
         if differs(2) {
             for dx in 0..taper {
-                put_clipped(term, area, sx + taper - 1 - dx, sy, '\u{2588}', heavy);
+                put_clipped(surface, area, sx + taper - 1 - dx, sy, '\u{2588}', heavy);
             }
         }
         if differs(1) {
             for dx in 0..taper {
-                put_clipped(term, area, sx + w - taper + dx, sy, '\u{2588}', heavy);
+                put_clipped(surface, area, sx + w - taper + dx, sy, '\u{2588}', heavy);
             }
         }
         if differs(4) {
             for dx in 0..taper {
                 put_clipped(
-                    term,
+                    surface,
                     area,
                     sx + taper - 1 - dx,
                     sy + h - 1,
@@ -386,7 +386,7 @@ impl HexOutline {
         if differs(5) {
             for dx in 0..taper {
                 put_clipped(
-                    term,
+                    surface,
                     area,
                     sx + w - taper + dx,
                     sy + h - 1,
@@ -397,7 +397,7 @@ impl HexOutline {
         }
     }
 
-    fn draw_map<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&self, surface: &mut Surface<'_>, area: Rect) {
         let (w, h) = (self.layout.pitch_x, self.layout.pitch_y);
         let margin_cols = i32::from(area.width()) / w + 2;
         let margin_rows = i32::from(area.height()) / h + 2;
@@ -435,12 +435,12 @@ impl HexOutline {
             } else {
                 0.0
             };
-            self.draw_hex(term, area, sx, sy, &data, emphasis);
+            self.draw_hex(surface, area, sx, sy, &data, emphasis);
         }
         if self.show_borders {
             for &(tile, sx, sy) in &visible {
                 let data = self.tile_at(tile);
-                self.draw_province_borders(term, area, sx, sy, tile, &data);
+                self.draw_province_borders(surface, area, sx, sy, tile, &data);
             }
         }
     }
@@ -471,20 +471,13 @@ const fn row_span(dy: i32, h: i32, taper: i32, w: i32) -> (i32, i32) {
 }
 
 /// [`Terminal::put_styled`] with clipping to `area`.
-fn put_clipped<B: Backend>(
-    term: &mut Terminal<B>,
-    area: Rect,
-    x: i32,
-    y: i32,
-    glyph: char,
-    style: Style,
-) {
+fn put_clipped(surface: &mut Surface<'_>, area: Rect, x: i32, y: i32, glyph: char, style: Style) {
     if x >= i32::from(area.left())
         && x < i32::from(area.right())
         && y >= i32::from(area.top())
         && y < i32::from(area.bottom())
     {
-        term.put_styled(x as u16, y as u16, glyph, style);
+        surface.put((x as u16, y as u16), glyph, style);
     }
 }
 
@@ -511,13 +504,13 @@ impl Demo for HexOutline {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

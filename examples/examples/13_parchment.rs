@@ -42,7 +42,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
 use ascii_tile_demos::ui;
@@ -196,7 +196,7 @@ impl Parchment {
 
     /// Draws the map: paper texture, hatched terrain, coastline, labels,
     /// frame, and cartouche, in that back-to-front order.
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: Rect) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (paper, ink) = self.scheme.colors();
@@ -216,14 +216,14 @@ impl Parchment {
                 // sheet, not as per-cell speckle.
                 let bg = cell_background(paper, wx, wy);
                 let fg = mix(bg, ink, ink_strength);
-                put_clipped(term, area, sx, sy, glyph, Style::new().fg(fg).bg(bg));
+                put_clipped(surface, area, sx, sy, glyph, Style::new().fg(fg).bg(bg));
             }
         }
 
-        self.draw_coastline(term, area);
-        self.draw_labels(term, area, ink);
-        draw_frame(term, area, paper, ink);
-        self.draw_cartouche(term, area, paper, ink);
+        self.draw_coastline(surface, area);
+        self.draw_labels(surface, area, ink);
+        draw_frame(surface, area, paper, ink);
+        self.draw_cartouche(surface, area, paper, ink);
     }
 
     /// The glyph and ink strength (`0.0` bare paper, `1.0` full ink) for one
@@ -250,7 +250,7 @@ impl Parchment {
     /// cell used so the ink composites onto the correct color instead of onto
     /// an assumed default. Cheap to recompute (one hash lookup) and keeps this
     /// pass from needing to read back the grid.
-    fn draw_coastline<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_coastline(&self, surface: &mut Surface<'_>, area: Rect) {
         let (paper, ink) = self.scheme.colors();
         // A slow pulse (period ~6s) on the coastline's darkness: "wet ink"
         // that never fully dries, the one animated flourish that belongs on
@@ -272,7 +272,7 @@ impl Parchment {
                 let strength = 0.55f32.mul_add(wet, 0.75);
                 let bg = cell_background(paper, wx, wy);
                 let fg = mix(bg, ink, strength);
-                put_clipped(term, area, sx, sy, glyph, Style::new().fg(fg).bg(bg));
+                put_clipped(surface, area, sx, sy, glyph, Style::new().fg(fg).bg(bg));
 
                 // One offshore ripple line, one cell further out to sea: the
                 // engraved-sea convention of parallel lines paralleling the
@@ -287,14 +287,14 @@ impl Parchment {
                         );
                         let obg = cell_background(paper, ox, oy);
                         let ofg = mix(obg, ink, strength * 0.5);
-                        put_clipped(term, area, osx, osy, '~', Style::new().fg(ofg).bg(obg));
+                        put_clipped(surface, area, osx, osy, '~', Style::new().fg(ofg).bg(obg));
                     }
                 }
             }
         }
     }
 
-    fn draw_labels<B: Backend>(&self, term: &mut Terminal<B>, area: Rect, ink: Color) {
+    fn draw_labels(&self, surface: &mut Surface<'_>, area: Rect, ink: Color) {
         let (paper, _) = self.scheme.colors();
         for label in &self.labels {
             for (i, ch) in label.text.chars().enumerate() {
@@ -305,18 +305,12 @@ impl Parchment {
                 }
                 let (sx, sy) = (area.left() + screen.x as u16, area.top() + screen.y as u16);
                 let bg = cell_background(paper, lx, ly);
-                put_clipped(term, area, sx, sy, ch, Style::new().fg(ink).bg(bg));
+                put_clipped(surface, area, sx, sy, ch, Style::new().fg(ink).bg(bg));
             }
         }
     }
 
-    fn draw_cartouche<B: Backend>(
-        &self,
-        term: &mut Terminal<B>,
-        area: Rect,
-        paper: Color,
-        ink: Color,
-    ) {
+    fn draw_cartouche(&self, surface: &mut Surface<'_>, area: Rect, paper: Color, ink: Color) {
         let title = format!(" A MAPPE OF THE REALM -- seed {} ", self.world.seed());
         let w = title.chars().count() as u16 + 2;
         if area.width() < w + 4 || area.height() < 4 {
@@ -326,7 +320,7 @@ impl Parchment {
         let y0 = area.top() + 1;
         for dx in 0..w {
             put_clipped(
-                term,
+                surface,
                 area,
                 x0 + dx,
                 y0,
@@ -334,7 +328,7 @@ impl Parchment {
                 Style::new().fg(ink).bg(paper),
             );
             put_clipped(
-                term,
+                surface,
                 area,
                 x0 + dx,
                 y0 + 2,
@@ -343,7 +337,7 @@ impl Parchment {
             );
         }
         put_clipped(
-            term,
+            surface,
             area,
             x0,
             y0 + 1,
@@ -351,7 +345,7 @@ impl Parchment {
             Style::new().fg(ink).bg(paper),
         );
         put_clipped(
-            term,
+            surface,
             area,
             x0 + w - 1,
             y0 + 1,
@@ -360,7 +354,7 @@ impl Parchment {
         );
         for (i, ch) in title.chars().enumerate() {
             put_clipped(
-                term,
+                surface,
                 area,
                 x0 + 1 + i as u16,
                 y0 + 1,
@@ -396,37 +390,37 @@ fn cell_background(paper: Color, x: i32, y: i32) -> Color {
 
 /// `Terminal::put_styled` with clipping: tiles and overlays at the map edges
 /// legitimately hang partly outside the viewport.
-fn put_clipped<B: Backend>(
-    term: &mut Terminal<B>,
-    area: Rect,
-    x: u16,
-    y: u16,
-    glyph: char,
-    style: Style,
-) {
+fn put_clipped(surface: &mut Surface<'_>, area: Rect, x: u16, y: u16, glyph: char, style: Style) {
     if x >= area.left() && x < area.right() && y >= area.top() && y < area.bottom() {
-        term.put_styled(x, y, glyph, style);
+        surface.put((x, y), glyph, style);
     }
 }
 
 /// Draws a double-ruled border around `area`.
-fn draw_frame<B: Backend>(term: &mut Terminal<B>, area: Rect, paper: Color, ink: Color) {
+fn draw_frame(surface: &mut Surface<'_>, area: Rect, paper: Color, ink: Color) {
     if area.width() < 2 || area.height() < 2 {
         return;
     }
     let style = Style::new().fg(ink).bg(paper);
     for x in area.left()..area.right() {
-        put_clipped(term, area, x, area.top(), '\u{2550}', style);
-        put_clipped(term, area, x, area.bottom() - 1, '\u{2550}', style);
+        put_clipped(surface, area, x, area.top(), '\u{2550}', style);
+        put_clipped(surface, area, x, area.bottom() - 1, '\u{2550}', style);
     }
     for y in area.top()..area.bottom() {
-        put_clipped(term, area, area.left(), y, '\u{2551}', style);
-        put_clipped(term, area, area.right() - 1, y, '\u{2551}', style);
+        put_clipped(surface, area, area.left(), y, '\u{2551}', style);
+        put_clipped(surface, area, area.right() - 1, y, '\u{2551}', style);
     }
-    put_clipped(term, area, area.left(), area.top(), '\u{2554}', style);
-    put_clipped(term, area, area.right() - 1, area.top(), '\u{2557}', style);
+    put_clipped(surface, area, area.left(), area.top(), '\u{2554}', style);
     put_clipped(
-        term,
+        surface,
+        area,
+        area.right() - 1,
+        area.top(),
+        '\u{2557}',
+        style,
+    );
+    put_clipped(
+        surface,
         area,
         area.left(),
         area.bottom() - 1,
@@ -434,7 +428,7 @@ fn draw_frame<B: Backend>(term: &mut Terminal<B>, area: Rect, paper: Color, ink:
         style,
     );
     put_clipped(
-        term,
+        surface,
         area,
         area.right() - 1,
         area.bottom() - 1,
@@ -615,14 +609,14 @@ impl Demo for Parchment {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        let (paper, _) = self.scheme.colors();
-        ui::fill(term, content, Style::new().bg(paper));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        let (paper, _) = self.scheme.colors();
+        ui::fill(&mut surface, content, Style::new().bg(paper));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

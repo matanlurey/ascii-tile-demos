@@ -106,7 +106,12 @@ pub trait Demo: Default + Sized + 'static {
     /// unthrottled spin loop, while the windowed drivers are vsync-paced, so
     /// per-tick animation runs at wildly different speeds across backends.
     ///
-    /// Responsible for calling [`Terminal::present`].
+    /// Draw through [`Terminal::surface`], not [`Terminal::draw`]: `draw`
+    /// presents the frame itself, and every driver already presents once
+    /// `tick` returns. Presenting here is not an error (the driver notices via
+    /// [`Terminal::present_count`] and skips its own call) but it is never
+    /// required, and the non-driver callers that need it -- headless renders,
+    /// the `wasm-terminal` FFI tick -- present around `tick` instead.
     fn tick<B: Backend>(&mut self, term: &mut Terminal<B>, frame: &Frame) -> bool;
 }
 
@@ -159,80 +164,6 @@ fn sync_size<B: Backend>(term: &mut Terminal<B>) {
     }
 }
 
-// The event-loop proxy, once the driver hands it over. A plain comment rather
-// than a doc comment because `thread_local!` does not forward one.
-//
-// A thread-local rather than a field on `DemoApp` because it is genuinely
-// process-global: `retroglyph-window` supports one `WindowBackend` per
-// process, `run_app_with_proxy` creates the event loop *after* taking
-// ownership of the app, and threading an `Rc` through the constructor forces
-// every backend's `DemoApp::new` to have a different signature for a value
-// only one target ever reads.
-#[cfg(all(target_arch = "wasm32", any(feature = "software", feature = "gl")))]
-thread_local! {
-    static FRAME_PUMP: std::cell::RefCell<Option<retroglyph_window::winit::EventProxy>> =
-        const { std::cell::RefCell::new(None) };
-}
-
-/// Records the proxy the driver just created. Called from `on_proxy`, which
-/// runs synchronously before the event loop starts.
-#[cfg(any(feature = "software", feature = "gl"))]
-#[cfg_attr(
-    not(target_arch = "wasm32"),
-    expect(
-        unused_variables,
-        clippy::needless_pass_by_value,
-        reason = "the body is wasm-only, so native sees an empty function"
-    )
-)]
-fn install_frame_pump(proxy: retroglyph_window::winit::EventProxy) {
-    #[cfg(target_arch = "wasm32")]
-    FRAME_PUMP.with(|slot| *slot.borrow_mut() = Some(proxy));
-}
-
-/// Keeps the event loop awake on `wasm32` by injecting one event per frame.
-///
-/// [`TARGET_FPS`] is enough on native, but in the published
-/// `retroglyph-window` 0.3.1 the entire `frame_interval` branch of
-/// `about_to_wait` sits behind `#[cfg(not(target_arch = "wasm32"))]`. On wasm
-/// `target_fps` is therefore not merely ignored, it is compiled out, and the
-/// only surviving path is the `needs_redraw` gate. With nothing setting that
-/// flag the browser build renders one frame and freezes until you move the
-/// mouse.
-///
-/// Injecting through the proxy sets `needs_redraw` (see the driver's
-/// `handle_user_event`), so `about_to_wait` requests a redraw, which the web
-/// backend services on the next `requestAnimationFrame`. Doing it once per
-/// frame makes that self-sustaining at display refresh.
-///
-/// Native is excluded deliberately: there the throttled `WaitUntil` branch
-/// returns before consulting `needs_redraw`, so this would buy nothing and
-/// cost a stray `Event::Custom` per frame for every demo to skip past.
-///
-/// Removable once a `retroglyph-window` release carries the fix. Upstream
-/// already has it: retroglyph's own examples animate in the browser because
-/// their unreleased tree moves the cfg to wrap only the *sleep*, leaving
-/// `request_redraw()` on the wasm path. See
-/// <https://github.com/crates-lurey-io/retroglyph/issues/510>.
-#[cfg(any(feature = "software", feature = "gl"))]
-#[cfg_attr(
-    not(target_arch = "wasm32"),
-    expect(
-        clippy::missing_const_for_fn,
-        reason = "the body is wasm-only, so native sees an empty function"
-    )
-)]
-fn pump_next_frame() {
-    #[cfg(target_arch = "wasm32")]
-    FRAME_PUMP.with(|slot| {
-        if let Some(proxy) = slot.borrow().as_ref() {
-            // A closed loop means the app is shutting down, which is exactly
-            // when there is no next frame to ask for.
-            let _ = proxy.send_event(0);
-        }
-    });
-}
-
 #[cfg(any(feature = "crossterm", feature = "software", feature = "gl"))]
 struct DemoApp<D> {
     state: Option<D>,
@@ -249,8 +180,6 @@ impl<D> DemoApp<D> {
 impl<B: Backend, D: Demo> App<B> for DemoApp<D> {
     fn update(&mut self, term: &mut Terminal<B>, frame: &Frame) -> Flow {
         sync_size(term);
-        #[cfg(any(feature = "software", feature = "gl"))]
-        pump_next_frame();
         let state = self.state.get_or_insert_with(|| D::init(term));
         if state.tick(term, frame) {
             Flow::Continue
@@ -264,25 +193,24 @@ impl<B: Backend, D: Demo> App<B> for DemoApp<D> {
 
 /// Frame rate the windowed backends are driven at.
 ///
-/// Not a performance cap; it is what makes the demos animate at all on native.
-/// `retroglyph-window`'s winit driver is event-driven by default: with
-/// `target_fps: None` it leaves `ControlFlow::Wait` set and only requests a
-/// redraw when something happened (input, resize, an injected event), on the
-/// reasonable assumption that a retro/terminal-style app is idle most of the
-/// time and should not spin at 100% CPU re-rendering an unchanged frame.
+/// Fed to [`WindowConfig::animated`](retroglyph_window::winit::WindowConfig::animated),
+/// which is `fit` with `event_driven: false`: a frame renders every tick
+/// whether or not an input event arrived, capped at this rate. The default
+/// `event_driven: true` mode is the wrong one for this gallery. It only
+/// redraws after something happened, on the reasonable assumption that a
+/// retro/terminal-style app is idle most of the time and should not spin at
+/// 100% CPU re-rendering an unchanged frame -- but every demo here animates off
+/// [`Frame::delta`], so under that gate the map would only advance while you
+/// wiggle the mouse.
 ///
-/// That assumption is exactly wrong for this gallery. Every demo here animates
-/// on its own, and with no target set the map only advances while you wiggle
-/// the mouse. Passing one switches the driver to its `WaitUntil` path, which
-/// redraws unconditionally once each deadline passes.
-///
-/// No effect on `wasm32`, where the driver is always
-/// `requestAnimationFrame`-driven, or on the terminal backend, whose blocking
-/// driver is already an unthrottled loop. 60 rather than uncapped so an idle
-/// demo costs a predictable slice of one core instead of whatever the GPU will
-/// give it.
+/// No effect on the terminal backend, whose blocking driver is already an
+/// unthrottled loop. On `wasm32` the browser owns pacing (each requested
+/// redraw lands on the next `requestAnimationFrame`), so the specific number
+/// is advisory there and only the continuous-vs-on-demand choice carries over.
+/// 60 rather than uncapped so an idle demo costs a predictable slice of one
+/// core instead of whatever the GPU will give it.
 #[cfg(any(feature = "software", feature = "gl"))]
-const TARGET_FPS: Option<u32> = Some(60);
+const TARGET_FPS: u32 = 60;
 
 /// The supplementary block-glyph sheet, and the characters it supplies.
 ///
@@ -361,15 +289,10 @@ pub fn run_software_with<D: Demo>(builder: retroglyph_software::SoftwareBackendB
         .expect("failed to initialize software backend")
         .run_headless()
         .expect("failed to build headless renderer");
-    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, TARGET_FPS)
+    let config = retroglyph_window::winit::WindowConfig::animated(&renderer, D::TITLE, TARGET_FPS)
         .fill_viewport(D::fill_viewport());
-    retroglyph_window::winit::run_app_with_proxy(
-        config,
-        renderer,
-        DemoApp::<D>::new(),
-        install_frame_pump,
-    )
-    .expect("event loop failed");
+    retroglyph_window::winit::run_app(config, renderer, DemoApp::<D>::new())
+        .expect("event loop failed");
 }
 
 // ── GL backend (native OpenGL 3.3 + browser WebGL2) ─────────────────────────
@@ -393,15 +316,10 @@ pub fn run_gl<D: Demo>() {
     )
     .build()
     .expect("failed to initialize gl backend");
-    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, TARGET_FPS)
+    let config = retroglyph_window::winit::WindowConfig::animated(&renderer, D::TITLE, TARGET_FPS)
         .fill_viewport(D::fill_viewport());
-    retroglyph_window::winit::run_app_with_proxy(
-        config,
-        renderer,
-        DemoApp::<D>::new(),
-        install_frame_pump,
-    )
-    .expect("event loop failed");
+    retroglyph_window::winit::run_app(config, renderer, DemoApp::<D>::new())
+        .expect("event loop failed");
 }
 
 // ── Crossterm backend (real TTY) ────────────────────────────────────────────
@@ -459,6 +377,10 @@ pub fn render_headless_frames<D: Demo>(frames: u32) -> Vec<String> {
         if !state.tick(&mut term, &frame) {
             break;
         }
+        // No driver here, and `tick` deliberately doesn't present itself (see
+        // [`Demo::tick`]), so this is what puts the frame in front of
+        // `format_view`.
+        term.present().expect("headless present cannot fail");
         views.push(term.backend().format_view());
     }
     views

@@ -33,10 +33,10 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use tilekit::geom::{Cell, IsoLayout, Tile};
 use tilekit::palette::{self, mix, scale};
@@ -360,8 +360,8 @@ impl IsoDiamond {
         scale(color, factor)
     }
 
-    fn put_clipped<B: Backend>(
-        term: &mut Terminal<B>,
+    fn put_clipped(
+        surface: &mut Surface<'_>,
         content: Rect,
         x: i32,
         y: i32,
@@ -375,14 +375,14 @@ impl IsoDiamond {
         if sx >= i32::from(content.right()) || sy >= i32::from(content.bottom()) {
             return;
         }
-        term.put_styled(sx as u16, sy as u16, glyph, style);
+        surface.put((sx as u16, sy as u16), glyph, style);
     }
 
     /// Draws one tile's diamond footprint, its glyph, and (optionally) its
     /// outline.
-    fn draw_tile<B: Backend>(
+    fn draw_tile(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         content: Rect,
         tile: Tile,
         origin: Cell,
@@ -401,7 +401,14 @@ impl IsoDiamond {
                 if highlighted {
                     color = mix(color, palette::rgb(255, 236, 170), 0.35);
                 }
-                Self::put_clipped(term, content, sx + dx, sy + dy, ' ', Style::new().bg(color));
+                Self::put_clipped(
+                    surface,
+                    content,
+                    sx + dx,
+                    sy + dy,
+                    ' ',
+                    Style::new().bg(color),
+                );
             }
             if self.show_outlines {
                 // Outline only the diamond's outer edge: the leftmost and
@@ -410,8 +417,8 @@ impl IsoDiamond {
                 let ink = palette::rgb(20, 20, 28);
                 let left = Style::new().fg(ink).bg(self.tile_face(tile, -span, dy));
                 let right = Style::new().fg(ink).bg(self.tile_face(tile, span, dy));
-                Self::put_clipped(term, content, sx - span, sy + dy, '\u{2502}', left);
-                Self::put_clipped(term, content, sx + span, sy + dy, '\u{2502}', right);
+                Self::put_clipped(surface, content, sx - span, sy + dy, '\u{2502}', left);
+                Self::put_clipped(surface, content, sx + span, sy + dy, '\u{2502}', right);
             }
         }
 
@@ -428,15 +435,15 @@ impl IsoDiamond {
         if let Some(landmark) = self.world.landmark_at(tile.col, tile.row) {
             let (glyph, color) = landmark.site.glyph_color();
             let style = Style::new().fg(color).bg(face);
-            Self::put_clipped(term, content, sx, sy, glyph, style);
+            Self::put_clipped(surface, content, sx, sy, glyph, style);
         } else if !biome.is_water() && biome != Biome::Peak {
             let glyph = biome.glyph();
             let style = Style::new().fg(scale(biome.color(), 1.4)).bg(face);
-            Self::put_clipped(term, content, sx, sy, glyph, style);
+            Self::put_clipped(surface, content, sx, sy, glyph, style);
         }
     }
 
-    fn draw<B: Backend>(&self, term: &mut Terminal<B>, content: Rect) {
+    fn draw(&self, surface: &mut Surface<'_>, content: Rect) {
         let layout = self.layout();
         // `origin` is the projected cell that lands at the viewport's
         // top-left corner: the centered tile's own projected cell, shifted
@@ -501,7 +508,7 @@ impl IsoDiamond {
 
         for (_, item) in draw_order {
             match item {
-                DrawItem::Tile(tile) => self.draw_tile(term, content, tile, center, layout),
+                DrawItem::Tile(tile) => self.draw_tile(surface, content, tile, center, layout),
                 DrawItem::Unit(i) => {
                     let unit = &self.units[i];
                     let pos = unit.position(layout);
@@ -510,7 +517,7 @@ impl IsoDiamond {
                     // backend and would cut a hole in the ground under it.
                     let ground = self.tile_face(unit.depth_tile(), 0, 0);
                     Self::put_clipped(
-                        term,
+                        surface,
                         content,
                         pos.x - center.x,
                         pos.y - center.y,
@@ -571,15 +578,12 @@ impl Demo for IsoDiamond {
             return false;
         }
 
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw(term, content);
-        ui::title_bar::<B, Self>(term, title);
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
         let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-        // Keep the PrintStr extension trait in scope for the chrome helpers.
-        let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
-
-        term.present().ok();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

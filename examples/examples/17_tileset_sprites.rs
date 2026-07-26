@@ -34,9 +34,9 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Style, Surface, Terminal};
 
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS};
 use tilekit::camera::TileCamera;
@@ -97,8 +97,12 @@ impl SpriteId {
 /// A deliberate lossy mapping: the world has sixteen biomes and the sheet has
 /// twelve sprites, because hand-drawn terrain art is expensive and a savanna
 /// drawn as grass is a much smaller lie than a savanna drawn as a question
-/// mark. Real tileset games make exactly this compromise, then paint over it
-/// with color modulation, which is what [`biome_tint`] does here.
+/// mark. Real tileset games make exactly this compromise, and the usual way to
+/// paper over it is per-tile color modulation -- which is exactly what this API
+/// cannot do: a sprite is blitted from its own pixels and ignores whatever
+/// foreground the cell carries. The ASCII path still colors its glyphs, and the
+/// water swell in [`Self::sprite_at`](TilesetSprites::sprite_at) shows the
+/// alternative a sprite sheet does have: swap the art, don't shade it.
 const fn sprite_for(biome: Biome) -> SpriteId {
     match biome {
         Biome::Ocean => SpriteId::Ocean,
@@ -121,23 +125,6 @@ const fn sprite_for_site(site: Site) -> Option<SpriteId> {
         Site::Fort => Some(SpriteId::Keep),
         // Ruins, mines, and shrines have no art in the sheet; drawing them as
         // a town would be worse than leaving them to the glyph layer.
-        _ => None,
-    }
-}
-
-/// A per-biome tint applied over its sprite, recovering the biome distinctions
-/// the twelve-sprite sheet collapses.
-///
-/// Returns `None` for biomes whose sprite is already exactly right, so the art
-/// shows through untouched wherever it can.
-const fn biome_tint(biome: Biome) -> Option<(Color, f32)> {
-    match biome {
-        Biome::Savanna => Some((palette::rgb(196, 176, 92), 0.42)),
-        Biome::Marsh => Some((palette::rgb(74, 92, 76), 0.46)),
-        Biome::Jungle => Some((palette::rgb(30, 96, 44), 0.40)),
-        Biome::Tundra => Some((palette::rgb(168, 172, 158), 0.44)),
-        Biome::Ice => Some((palette::rgb(206, 226, 240), 0.30)),
-        Biome::Lake => Some((palette::rgb(64, 116, 158), 0.30)),
         _ => None,
     }
 }
@@ -291,12 +278,15 @@ impl TilesetSprites {
         }
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: retroglyph_core::Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: retroglyph_core::Rect, sprites: bool) {
         self.camera
             .set_viewport(i32::from(area.width()), i32::from(area.height()));
         let (col_start, row_start, col_end, row_end) = self.camera.visible_tiles(TILE.w, TILE.h);
-        let sprites = self.effective_mode(term) == Mode::Sprites;
 
+        // Clip to the map area up front so `put_span` measures its footprint
+        // against the map rather than the whole screen: a tile at the bottom
+        // edge must not reserve cells in the status bar.
+        let mut map = ui::clip(surface, area);
         for row in row_start..row_end {
             for col in col_start..col_end {
                 if !self.world.in_bounds(col, row) {
@@ -305,14 +295,42 @@ impl TilesetSprites {
                 let origin = self
                     .camera
                     .world_to_screen(TILE.tile_to_cell(Tile::new(col, row)));
-                self.draw_tile(term, area, Tile::new(col, row), origin, sprites);
+                self.draw_tile(&mut map, area, Tile::new(col, row), origin, sprites);
             }
         }
     }
 
-    fn draw_tile<B: Backend>(
+    /// The sprite glyph for one world tile, including the animated swell.
+    ///
+    /// Water alternates between its two sprites along a slow moving sine band,
+    /// which is how a tileset game animates water: not by shading one tile over
+    /// time (a sprite's pixels are not modulated by anything the cell carries)
+    /// but by picking a different tile each frame. Everything else is static, so
+    /// it maps straight through [`sprite_for`].
+    fn sprite_at(&self, biome: Biome, col: i32, row: i32) -> char {
+        let sprite = sprite_for(biome);
+        if !biome.is_water() {
+            return sprite.glyph();
+        }
+        let swell = self
+            .time
+            .mul_add(1.5, (col as f32).mul_add(0.45, row as f32 * 0.8))
+            .sin();
+        // A high threshold keeps the crest a narrow travelling band rather than
+        // half the ocean flipping at once.
+        if swell > 0.55 {
+            match sprite {
+                SpriteId::Ocean => SpriteId::Shallows.glyph(),
+                _ => SpriteId::Ocean.glyph(),
+            }
+        } else {
+            sprite.glyph()
+        }
+    }
+
+    fn draw_tile(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         area: retroglyph_core::Rect,
         tile: Tile,
         origin: Cell,
@@ -322,17 +340,13 @@ impl TilesetSprites {
         let biome = self.world.biome_at(col, row);
         let selected = tile == self.cursor;
 
-        let mut color = if sprites {
-            // A sprite carries its own colors, so the foreground is a
-            // *modulation* of the art rather than a replacement for it: white
-            // means "draw the sprite as painted".
-            biome_tint(biome).map_or(palette::WHITE, |(tint, amount)| {
-                mix(palette::WHITE, tint, amount)
-            })
-        } else {
-            biome.color()
-        };
-
+        // Only the ASCII path reads this. A sprite is blitted with its own
+        // pixels and is not modulated by the cell's foreground, on either pixel
+        // backend, so tinting art through `fg` is not a thing this API can do
+        // (see <https://github.com/crates-lurey-io/retroglyph/issues/537>) --
+        // which is why the swell below animates by *choosing a different
+        // sprite* rather than by shading one.
+        let mut color = biome.color();
         if biome.is_water() {
             let phase = self
                 .time
@@ -352,27 +366,33 @@ impl TilesetSprites {
             scale(mix(biome.color(), ui::BG, 0.62), 1.0)
         };
 
-        let glyph = if sprites {
-            sprite_for(biome).glyph()
-        } else {
-            biome.glyph()
-        };
+        let style = Style::new().fg(color).bg(bg);
+        let ox = (i32::from(area.left()) + origin.x) as u16;
+        let oy = (i32::from(area.top()) + origin.y) as u16;
 
         // Terrain on layer 0.
-        term.layer(0);
-        for dy in 0..TILE.h {
-            for dx in 0..TILE.w {
-                let (x, y) = (origin.x + dx, origin.y + dy);
-                if !in_area(area, x, y) {
-                    continue;
+        if sprites {
+            // One span per tile, so the sprite is drawn once across the whole
+            // TILE.w x TILE.h footprint rather than once per cell. This is what
+            // the tileset's old `spacing(2, 1)` option used to try to express
+            // sheet-wide, and the reason it could not: how many cells a sprite
+            // covers is a property of the thing being drawn, not of the sheet
+            // it came from. The covered cells carry a space as their text
+            // fallback, which a pixel backend skips and a cell backend prints.
+            let rows = tile_span(self.sprite_at(biome, col, row));
+            surface.put_span((ox, oy), &borrow(&rows), style);
+        } else {
+            // No sprite to span: one glyph in the tile's first cell, blanks
+            // across the rest so nothing from the frame below shows through.
+            for dy in 0..TILE.h {
+                for dx in 0..TILE.w {
+                    let glyph = if dx == 0 && dy == 0 {
+                        biome.glyph()
+                    } else {
+                        ' '
+                    };
+                    surface.put((ox + dx as u16, oy + dy as u16), glyph, style);
                 }
-                // A sprite spans the whole tile and is anchored at its first
-                // cell; the remaining cells get a blank so nothing from the
-                // previous frame shows through the sprite's transparent parts.
-                let cell_glyph = if dx == 0 && dy == 0 { glyph } else { ' ' };
-                let sx = (i32::from(area.left()) + x) as u16;
-                let sy = (i32::from(area.top()) + y) as u16;
-                term.put_styled(sx, sy, cell_glyph, Style::new().fg(color).bg(bg));
             }
         }
 
@@ -387,12 +407,13 @@ impl TilesetSprites {
             } else {
                 landmark.site.glyph_color()
             };
-            if in_area(area, origin.x, origin.y) {
-                let sx = (i32::from(area.left()) + origin.x) as u16;
-                let sy = (i32::from(area.top()) + origin.y) as u16;
-                term.layer(1);
-                term.put_styled(sx, sy, marker_glyph, Style::new().fg(marker_color));
-                term.layer(0);
+            let marker_style = Style::new().fg(marker_color);
+            let mut over = surface.on_layer(1);
+            if sprites {
+                let rows = tile_span(marker_glyph);
+                over.put_span((ox, oy), &borrow(&rows), marker_style);
+            } else {
+                over.put((ox, oy), marker_glyph, marker_style);
             }
         }
     }
@@ -418,9 +439,48 @@ impl TilesetSprites {
     }
 }
 
-/// Whether `(x, y)`, in area-relative cells, is inside `area`.
-const fn in_area(area: retroglyph_core::Rect, x: i32, y: i32) -> bool {
-    x >= 0 && y >= 0 && x < area.width() as i32 && y < area.height() as i32
+/// The terrain sheet, shared by both pixel backends.
+///
+/// `include_bytes!` rather than a runtime `std::fs::read`: the WASM build has
+/// no filesystem to read from, and embedding is the only way the same source
+/// works on both. It also means a missing asset is a build error rather than a
+/// runtime panic in front of a visitor.
+#[cfg(any(feature = "software", feature = "gl"))]
+fn terrain_tileset() -> retroglyph_window::tileset::TilesetOptions {
+    use retroglyph_window::tileset::TilesetOptions;
+
+    let png = include_bytes!("../assets/terrain.png").to_vec();
+    TilesetOptions::from_bytes(png)
+        .tile_size(16, 16)
+        .start_codepoint('\u{E000}')
+        .build()
+        .expect("the generated tileset must decode")
+}
+
+/// The row strings [`Surface::put_span`] wants for a span covering one [`TILE`]:
+/// `anchor` in the top-left cell, a blank in every cell it covers.
+///
+/// The blanks are the span's text fallback, which is why they are spaces and
+/// not something decorative: a cell backend prints them, and a pixel backend
+/// skips them in favour of the sprite `anchor` resolves to.
+fn tile_span(anchor: char) -> Vec<String> {
+    (0..TILE.h)
+        .map(|row| {
+            (0..TILE.w)
+                .map(|col| if row == 0 && col == 0 { anchor } else { ' ' })
+                .collect()
+        })
+        .collect()
+}
+
+/// Reborrows [`tile_span`]'s rows as the `&[&str]` [`Surface::put_span`] takes.
+///
+/// A separate step because the rows have to outlive the call and `put_span`
+/// accepts only a slice of borrows, so a computed footprint cannot be passed
+/// inline; see
+/// <https://github.com/crates-lurey-io/retroglyph/issues/536>.
+fn borrow(rows: &[String]) -> Vec<&str> {
+    rows.iter().map(String::as_str).collect()
 }
 
 /// Display name for a sprite, for the status readout.
@@ -461,21 +521,25 @@ impl Demo for TilesetSprites {
     /// has no filesystem to read from, and embedding is the only way the same
     /// source works on both. It also means a missing asset is a build error
     /// rather than a runtime panic in front of a visitor.
+    ///
+    /// Note what is *not* configured here: how many cells a sprite covers. The
+    /// sheet used to declare that with a `spacing(2, 1)` option, which could
+    /// never work, because two sprites from one sheet can legitimately cover
+    /// different numbers of cells. It is a per-draw decision now, made by
+    /// [`tile_span`] and [`Surface::put_span`].
     #[cfg(feature = "software")]
     fn configure_software(
         builder: retroglyph_software::SoftwareBackendBuilder,
     ) -> retroglyph_software::SoftwareBackendBuilder {
-        use retroglyph_software::tileset::TilesetOptions;
+        builder.tileset(terrain_tileset())
+    }
 
-        let png = include_bytes!("../assets/terrain.png").to_vec();
-        let options = TilesetOptions::from_bytes(png)
-            .tile_size(16, 16)
-            .start_codepoint('\u{E000}')
-            // Each 16x16 sprite covers 2x1 cells of the 8x16 font grid.
-            .spacing(2, 1)
-            .build()
-            .expect("the generated tileset must decode");
-        builder.tileset(options)
+    /// The GPU counterpart of [`Self::configure_software`]. Same sheet, same
+    /// options: `retroglyph-gl` builds its sprite atlas from the identical
+    /// [`TilesetOptions`], so the two backends draw the same picture.
+    #[cfg(feature = "gl")]
+    fn configure_gl(builder: retroglyph_gl::GlBackendBuilder) -> retroglyph_gl::GlBackendBuilder {
+        builder.tileset(terrain_tileset())
     }
 
     fn tick<B: Backend>(&mut self, term: &mut Terminal<B>, frame: &Frame) -> bool {
@@ -485,17 +549,17 @@ impl Demo for TilesetSprites {
             return false;
         }
 
+        // Asked before the surface is taken: it is a question about the
+        // backend, which `Surface` deliberately says nothing about.
+        let sprites = self.effective_mode(term) == Mode::Sprites;
         let (title, content, status) = ui::split_chrome(term.area());
-        term.layer(0);
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        term.layer(0);
-        ui::title_bar::<B, Self>(term, title);
         let text = self.status(term);
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-        let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content, sprites);
+        ui::title_bar::<Self>(&mut surface, title);
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

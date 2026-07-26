@@ -12,15 +12,17 @@ keywords = ["roguelike", "terminal", "tilemap", "gamedev"]
 categories = ["game-development", "graphics"]
 
 [workspace.dependencies]
-# All published on crates.io at these exact versions; nothing here is a path
-# dependency, so this repo clones and builds standalone.
-retroglyph-core = "0.3.1"
-retroglyph-crossterm = "0.1.4"
-retroglyph-gl = "0.1.0"
-retroglyph-software = "0.4.0"
-retroglyph-terminal-wasm = "0.1.4"
-retroglyph-widgets = "0.3.1"
-retroglyph-window = "0.3.1"
+# Pinned to a retroglyph git revision, not crates.io: the demos track APIs that
+# have landed on main but are not published yet. Nothing here is a path
+# dependency, so this repo still clones and builds standalone. Swap these back
+# to version requirements once the next retroglyph release goes out.
+retroglyph-core = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-crossterm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-gl = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-software = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-terminal-wasm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-widgets = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-window = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
 hexal = "0.1.1"
 tilekit = { path = "crates/tilekit", version = "0.1.0" }
 

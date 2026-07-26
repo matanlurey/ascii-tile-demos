@@ -12,16 +12,21 @@ publish = false
 [lints]
 workspace = true
 
-# Never enabled and never read. Including a demo's source also expands its
-# `demo_main!`, whose `#[cfg(feature = ...)]` arms resolve against *this*
-# crate rather than the one that defined the macro, so without these the build
-# is buried in `unexpected cfg condition value` warnings for a `main` that is
-# never called.
+# Including a demo's source expands its `demo_main!` and resolves every
+# `#[cfg(feature = ...)]` in it against *this* crate, not the one that defined
+# the macro. `software` is therefore a real feature and on by default: without
+# it `Demo::configure_software` is cfg'd out of this crate's copy of the source,
+# the trait's do-nothing default is used instead, and a demo that registers a
+# tileset silently renders its sprite codepoints as the font's fallback glyph.
+#
+# The other three backends deliberately get no stub feature. Declaring them
+# would silence the `unexpected cfg condition value` warning for their arms, but
+# `--all-features` would then turn them on and those arms name crates this tool
+# has no reason to link (`retroglyph-gl` pulls in glutin/glow for a code path
+# that is never called). `src/main.rs` allows the lint instead.
 [features]
-crossterm = []
-gl = []
+default = ["software"]
 software = []
-wasm-terminal = []
 
 [dependencies]
 image = { version = "0.25", default-features = false, features = ["png"] }

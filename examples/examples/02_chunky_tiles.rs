@@ -37,7 +37,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
 use ascii_tile_demos::ui;
@@ -324,15 +324,7 @@ impl ChunkyTiles {
     }
 
     /// Draws one tile's beveled face plus its glyph, marker, and connectors.
-    fn draw_tile<B: Backend>(
-        &self,
-        term: &mut Terminal<B>,
-        area: Rect,
-        tx: i32,
-        ty: i32,
-        sx: i32,
-        sy: i32,
-    ) {
+    fn draw_tile(&self, surface: &mut Surface<'_>, area: Rect, tx: i32, ty: i32, sx: i32, sy: i32) {
         let Some(tile) = self.map.get(tx, ty) else {
             return;
         };
@@ -370,9 +362,8 @@ impl ChunkyTiles {
                 } else if neighbor_of_selected {
                     face = mix(face, palette::rgb(255, 236, 170), 0.10);
                 }
-                term.put_styled(
-                    area.left() + cx as u16,
-                    area.top() + cy as u16,
+                surface.put(
+                    (area.left() + cx as u16, area.top() + cy as u16),
                     ' ',
                     Style::new().bg(face),
                 );
@@ -382,7 +373,7 @@ impl ChunkyTiles {
         let center = (layout.w / 2, layout.h / 2);
         let glyph_fg = mix(tile.biome.color(), palette::WHITE, 0.55);
         put_glyph(
-            term,
+            surface,
             area,
             sx,
             sy,
@@ -395,7 +386,7 @@ impl ChunkyTiles {
 
         if let Some((marker, color)) = tile.marker {
             put_glyph(
-                term,
+                surface,
                 area,
                 sx,
                 sy,
@@ -408,7 +399,7 @@ impl ChunkyTiles {
         } else if tile.has_road {
             let road_color = palette::rgb(214, 196, 156);
             put_glyph(
-                term, area, sx, sy, center, '\u{00b7}', road_color, base, layout,
+                surface, area, sx, sy, center, '\u{00b7}', road_color, base, layout,
             );
         }
 
@@ -428,7 +419,7 @@ impl ChunkyTiles {
             };
             if tile.has_river && neighbor.has_river {
                 put_glyph(
-                    term,
+                    surface,
                     area,
                     sx,
                     sy,
@@ -440,12 +431,14 @@ impl ChunkyTiles {
                 );
             } else if tile.has_road && neighbor.has_road {
                 let road_color = palette::rgb(214, 196, 156);
-                put_glyph(term, area, sx, sy, at, '\u{00b7}', road_color, base, layout);
+                put_glyph(
+                    surface, area, sx, sy, at, '\u{00b7}', road_color, base, layout,
+                );
             }
         }
     }
 
-    fn draw_map<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&self, surface: &mut Surface<'_>, area: Rect) {
         let layout = self.zoom.layout();
         let visible_cols = i32::from(area.width()) / layout.w + 1;
         let visible_rows = i32::from(area.height()) / layout.h + 1;
@@ -453,7 +446,7 @@ impl ChunkyTiles {
         for row in 0..visible_rows {
             for col in 0..visible_cols {
                 let (tx, ty) = (self.origin.col + col, self.origin.row + row);
-                self.draw_tile(term, area, tx, ty, col * layout.w, row * layout.h);
+                self.draw_tile(surface, area, tx, ty, col * layout.w, row * layout.h);
             }
         }
     }
@@ -500,8 +493,8 @@ fn bevel(face: Color, dx: i32, dy: i32, layout: SquareLayout) -> Color {
 
 /// Writes one glyph at a tile-relative offset, clipped to `area`.
 #[allow(clippy::too_many_arguments)]
-fn put_glyph<B: Backend>(
-    term: &mut Terminal<B>,
+fn put_glyph(
+    surface: &mut Surface<'_>,
     area: Rect,
     sx: i32,
     sy: i32,
@@ -516,9 +509,8 @@ fn put_glyph<B: Backend>(
         return;
     }
     let bg = bevel(face, dx, dy, layout);
-    term.put_styled(
-        area.left() + cx as u16,
-        area.top() + cy as u16,
+    surface.put(
+        (area.left() + cx as u16, area.top() + cy as u16),
         glyph,
         Style::new().fg(fg).bg(bg),
     );
@@ -547,13 +539,13 @@ impl Demo for ChunkyTiles {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

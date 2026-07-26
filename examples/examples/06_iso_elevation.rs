@@ -36,10 +36,10 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Frame, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Frame, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::Demo;
-use ascii_tile_demos::ui::{self, PrintStr};
+use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
 use tilekit::geom::{Cell, IsoLayout, Tile};
 use tilekit::noise::fbm;
@@ -233,8 +233,8 @@ impl IsoElevation {
         Cell::new(screen.x - half_w + center.x, screen.y - half_h + center.y)
     }
 
-    fn put_clipped<B: Backend>(
-        term: &mut Terminal<B>,
+    fn put_clipped(
+        surface: &mut Surface<'_>,
         content: Rect,
         x: i32,
         y: i32,
@@ -248,7 +248,7 @@ impl IsoElevation {
         if sx >= i32::from(content.right()) || sy >= i32::from(content.bottom()) {
             return;
         }
-        term.put_styled(sx as u16, sy as u16, glyph, style);
+        surface.put((sx as u16, sy as u16), glyph, style);
     }
 
     /// A soft cloud shadow: a wide, slowly-drifting noise blob that dims
@@ -307,9 +307,9 @@ impl IsoElevation {
     /// share the drawn tile's left and right lower edges): if either is
     /// shorter, the visible gap between this tile's underside and the ground
     /// has to be filled or the terrain reads as floating.
-    fn draw_cliff<B: Backend>(
+    fn draw_cliff(
         &self,
-        term: &mut Terminal<B>,
+        surface: &mut Surface<'_>,
         content: Rect,
         tile: Tile,
         level: i32,
@@ -373,7 +373,7 @@ impl IsoElevation {
                         rock
                     };
                     Self::put_clipped(
-                        term,
+                        surface,
                         content,
                         sx + dx,
                         sy + dy + r,
@@ -385,15 +385,9 @@ impl IsoElevation {
         }
     }
 
-    fn draw_tile<B: Backend>(
-        &self,
-        term: &mut Terminal<B>,
-        content: Rect,
-        tile: Tile,
-        center: Cell,
-    ) {
+    fn draw_tile(&self, surface: &mut Surface<'_>, content: Rect, tile: Tile, center: Cell) {
         let level = self.level_at(tile);
-        self.draw_cliff(term, content, tile, level, center);
+        self.draw_cliff(surface, content, tile, level, center);
 
         let raised = LAYOUT.tile_to_cell_elevated(tile, level, self.per_level);
         let (sx, sy) = (raised.x - center.x, raised.y - center.y);
@@ -408,7 +402,14 @@ impl IsoElevation {
                 if highlighted {
                     color = mix(color, palette::rgb(255, 236, 170), 0.35);
                 }
-                Self::put_clipped(term, content, sx + dx, sy + dy, ' ', Style::new().bg(color));
+                Self::put_clipped(
+                    surface,
+                    content,
+                    sx + dx,
+                    sy + dy,
+                    ' ',
+                    Style::new().bg(color),
+                );
             }
             if self.wireframe {
                 let ink = palette::rgb(18, 18, 24);
@@ -418,8 +419,8 @@ impl IsoElevation {
                 let right = Style::new()
                     .fg(ink)
                     .bg(self.tile_face(tile, level, span, dy));
-                Self::put_clipped(term, content, sx - span, sy + dy, '\u{2502}', left);
-                Self::put_clipped(term, content, sx + span, sy + dy, '\u{2502}', right);
+                Self::put_clipped(surface, content, sx - span, sy + dy, '\u{2502}', left);
+                Self::put_clipped(surface, content, sx + span, sy + dy, '\u{2502}', right);
             }
         }
 
@@ -435,7 +436,7 @@ impl IsoElevation {
         if let Some(landmark) = self.world.landmark_at(tile.col, tile.row) {
             let (glyph, color) = landmark.site.glyph_color();
             let style = Style::new().fg(color).bg(face);
-            Self::put_clipped(term, content, sx, sy, glyph, style);
+            Self::put_clipped(surface, content, sx, sy, glyph, style);
         } else if !biome.is_water() {
             let glyph = if biome == Biome::Peak || biome == Biome::Mountain {
                 biome.glyph()
@@ -445,11 +446,11 @@ impl IsoElevation {
                 biome.glyph()
             };
             let style = Style::new().fg(scale(biome.color(), 1.4)).bg(face);
-            Self::put_clipped(term, content, sx, sy, glyph, style);
+            Self::put_clipped(surface, content, sx, sy, glyph, style);
         }
     }
 
-    fn draw<B: Backend>(&self, term: &mut Terminal<B>, content: Rect) {
+    fn draw(&self, surface: &mut Surface<'_>, content: Rect) {
         let center_cell = LAYOUT.tile_to_cell(self.center_tile);
         let center = Cell::new(
             center_cell.x - i32::from(content.width()) / 2,
@@ -498,7 +499,7 @@ impl IsoElevation {
         visible.sort_by_key(|&t| IsoLayout::depth(t));
 
         for tile in visible {
-            self.draw_tile(term, content, tile, center);
+            self.draw_tile(surface, content, tile, center);
         }
     }
 
@@ -544,14 +545,12 @@ impl Demo for IsoElevation {
             return false;
         }
 
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw(term, content);
-        ui::title_bar::<B, Self>(term, title);
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
         let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
-        let _ = |t: &mut Terminal<B>| t.print_styled_str(0, 0, "", Style::new());
-
-        term.present().ok();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

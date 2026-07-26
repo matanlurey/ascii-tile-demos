@@ -40,7 +40,7 @@
 //! ```
 
 use retroglyph_core::event::{Event, KeyCode, MouseButton, MouseEventKind};
-use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Terminal};
+use retroglyph_core::{Backend, Color, Frame, KeyModifiers, Rect, Style, Surface, Terminal};
 
 use ascii_tile_demos::ui;
 use ascii_tile_demos::util::perf::FpsMeter;
@@ -305,7 +305,7 @@ impl Relief {
         }
     }
 
-    fn draw_map<B: Backend>(&mut self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_map(&mut self, surface: &mut Surface<'_>, area: Rect) {
         // One world cell is drawn `CELL_SPAN` columns wide and one row tall,
         // so it covers a square patch of screen. Every other demo draws one
         // world cell per character cell and accepts a map stretched 2:1
@@ -341,18 +341,18 @@ impl Relief {
                     // or dither mark repeated across both would read as twice
                     // as dense as it is.
                     let ch = if dx == 0 { glyph } else { ' ' };
-                    term.put_styled(sx, sy, ch, Style::new().fg(fg).bg(bg));
+                    surface.put((sx, sy), ch, Style::new().fg(fg).bg(bg));
                 }
             }
         }
 
-        self.draw_compass(term, area);
+        self.draw_compass(surface, area);
     }
 
     /// A small sun-direction indicator in the map's top-right corner, so the
     /// azimuth being adjusted (or orbiting) has a visible reference outside
     /// of watching shadows move.
-    fn draw_compass<B: Backend>(&self, term: &mut Terminal<B>, area: Rect) {
+    fn draw_compass(&self, surface: &mut Surface<'_>, area: Rect) {
         if area.width() < 12 || area.height() < 5 {
             return;
         }
@@ -363,9 +363,9 @@ impl Relief {
         // bearing `self.azimuth` (clockwise from north / up).
         let sun_x = i32::from(cx) + (self.azimuth.sin() * 3.0).round() as i32;
         let sun_y = i32::from(cy) - (self.azimuth.cos() * 1.5).round() as i32;
-        term.put_styled(cx, cy, '+', Style::new().fg(ui::DIM).bg(ui::BG));
+        surface.put((cx, cy), '+', Style::new().fg(ui::DIM).bg(ui::BG));
         if sun_x >= 0 && sun_y >= 0 {
-            term.put_styled(sun_x as u16, sun_y as u16, '*', style);
+            surface.put((sun_x as u16, sun_y as u16), '*', style);
         }
     }
 
@@ -414,13 +414,13 @@ impl Demo for Relief {
         }
 
         let (title, content, status) = ui::split_chrome(term.area());
-        ui::fill(term, content, Style::new().bg(ui::BG));
-        self.draw_map(term, content);
-        ui::title_bar::<B, Self>(term, title);
-        let text = self.status();
-        ui::status_bar::<B, Self>(term, status, &text, &self.fps);
 
-        term.present().ok();
+        let mut surface = term.surface();
+        ui::fill(&mut surface, content, Style::new().bg(ui::BG));
+        self.draw_map(&mut surface, content);
+        ui::title_bar::<Self>(&mut surface, title);
+        let text = self.status();
+        ui::status_bar::<Self>(&mut surface, status, &text, &self.fps);
         true
     }
 }

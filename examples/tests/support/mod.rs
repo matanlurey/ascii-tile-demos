@@ -17,6 +17,33 @@
 use ascii_tile_demos::{Demo, HEADLESS_COLS, HEADLESS_FRAME_DELTA, HEADLESS_ROWS};
 use retroglyph_core::{Frame, Headless, Terminal};
 
+/// Ticks `frames` frames of `D`, presenting each one, and calls `after` with the
+/// terminal after every present.
+///
+/// The present is the point: [`Demo::tick`] draws but does not present (every
+/// real driver presents once `tick` returns), so without it nothing ever
+/// reaches the backend and every demo measures as blank. `after` runs while the
+/// frame is still the backend's front buffer, which is the only moment a
+/// per-frame value like [`Headless::format_view`] can be read.
+fn advance<B, D, F>(term: &mut Terminal<B>, demo: &mut D, frames: u32, mut after: F)
+where
+    B: retroglyph_core::Backend,
+    D: Demo,
+    F: FnMut(&Terminal<B>),
+{
+    for i in 0..frames.max(1) {
+        let frame = Frame {
+            delta: HEADLESS_FRAME_DELTA,
+            frame: u64::from(i),
+        };
+        if !demo.tick(term, &frame) {
+            break;
+        }
+        term.present().expect("headless present cannot fail");
+        after(term);
+    }
+}
+
 /// Renders `frames` frames of `D` against a headless grid and returns the last
 /// one as text.
 ///
@@ -37,17 +64,9 @@ pub fn text_snapshot_at<D: Demo>(cols: u16, rows: u16, frames: u32) -> String {
     let mut term = Terminal::new(Headless::new(cols, rows));
     let mut demo = D::init(&mut term);
     let mut last = String::new();
-
-    for i in 0..frames.max(1) {
-        let frame = Frame {
-            delta: HEADLESS_FRAME_DELTA,
-            frame: u64::from(i),
-        };
-        if !demo.tick(&mut term, &frame) {
-            break;
-        }
+    advance(&mut term, &mut demo, frames, |term| {
         last = term.backend().format_view();
-    }
+    });
     last
 }
 
@@ -81,15 +100,7 @@ pub fn coverage<D: Demo>(frames: u32) -> Coverage {
 
     let mut term = Terminal::new(Headless::new(HEADLESS_COLS, HEADLESS_ROWS));
     let mut demo = D::init(&mut term);
-    for i in 0..frames.max(1) {
-        let frame = Frame {
-            delta: HEADLESS_FRAME_DELTA,
-            frame: u64::from(i),
-        };
-        if !demo.tick(&mut term, &frame) {
-            break;
-        }
-    }
+    advance(&mut term, &mut demo, frames, |_| {});
 
     let grid = term.backend().grid();
     let mut written = 0usize;
@@ -177,15 +188,7 @@ pub fn png_snapshot<D: Demo>(frames: u32) -> Vec<u8> {
 
     let mut term = Terminal::new(renderer);
     let mut demo = D::init(&mut term);
-    for i in 0..frames.max(1) {
-        let frame = Frame {
-            delta: HEADLESS_FRAME_DELTA,
-            frame: u64::from(i),
-        };
-        if !demo.tick(&mut term, &frame) {
-            break;
-        }
-    }
+    advance(&mut term, &mut demo, frames, |_| {});
 
     let pixels = term.backend().pixels();
     let (cols, rows) = (u32::from(HEADLESS_COLS), u32::from(HEADLESS_ROWS));
@@ -225,15 +228,7 @@ pub fn png_snapshot<D: Demo>(frames: u32) -> Vec<u8> {
 pub fn extent<D: Demo>(cols: u16, rows: u16, frames: u32) -> (u16, u16) {
     let mut term = Terminal::new(Headless::new(cols, rows));
     let mut demo = D::init(&mut term);
-    for i in 0..frames.max(1) {
-        let frame = Frame {
-            delta: HEADLESS_FRAME_DELTA,
-            frame: u64::from(i),
-        };
-        if !demo.tick(&mut term, &frame) {
-            break;
-        }
-    }
+    advance(&mut term, &mut demo, frames, |_| {});
     let grid = term.backend().grid();
     let (mut max_x, mut max_y) = (0u16, 0u16);
     for layer in 0..=grid.max_layer() {
