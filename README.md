@@ -129,6 +129,15 @@ codepage names. `tools/gen-tileset` draws the missing 328 glyphs procedurally
 registers it for every demo on both pixel backends. Regenerate with
 `just tileset`.
 
+**The winit driver is event-driven unless you ask for a frame rate.** With
+`target_fps: None`, `about_to_wait` leaves `ControlFlow::Wait` set and only
+requests a redraw when something happened, so an animated app advances only
+while you move the mouse. That default is right for an idle terminal-style app
+and wrong for everything in this gallery. The harness passes `Some(60)`. It has
+no effect on wasm (always `requestAnimationFrame`-driven) or on the terminal
+backend (already an unthrottled loop), which is why this only shows up in a
+native window.
+
 **The windowed drivers do not resize the terminal.** They resize the backend's
 surface and push an `Event::Resize`, but never call `Terminal::resize`, and the
 backend's own `size()` keeps reporting the configured grid. An app that ignores

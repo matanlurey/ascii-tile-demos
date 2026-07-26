@@ -186,6 +186,28 @@ fn sync_size<B: Backend>(term: &mut Terminal<B>) {
 
 // ── Software backend (native window + browser canvas) ───────────────────────
 
+/// Frame rate the windowed backends are driven at.
+///
+/// Not a performance cap; it is what makes the demos animate at all on native.
+/// `retroglyph-window`'s winit driver is event-driven by default: with
+/// `target_fps: None` it leaves `ControlFlow::Wait` set and only requests a
+/// redraw when something happened (input, resize, an injected event), on the
+/// reasonable assumption that a retro/terminal-style app is idle most of the
+/// time and should not spin at 100% CPU re-rendering an unchanged frame.
+///
+/// That assumption is exactly wrong for this gallery. Every demo here animates
+/// on its own, and with no target set the map only advances while you wiggle
+/// the mouse. Passing one switches the driver to its `WaitUntil` path, which
+/// redraws unconditionally once each deadline passes.
+///
+/// No effect on `wasm32`, where the driver is always
+/// `requestAnimationFrame`-driven, or on the terminal backend, whose blocking
+/// driver is already an unthrottled loop. 60 rather than uncapped so an idle
+/// demo costs a predictable slice of one core instead of whatever the GPU will
+/// give it.
+#[cfg(any(feature = "software", feature = "gl"))]
+const TARGET_FPS: u32 = 60;
+
 /// The supplementary block-glyph sheet, and the characters it supplies.
 ///
 /// `retroglyph`'s embedded bitmap font is CP437, and its character lookup is
@@ -263,7 +285,7 @@ pub fn run_software_with<D: Demo>(builder: retroglyph_software::SoftwareBackendB
         .expect("failed to initialize software backend")
         .run_headless()
         .expect("failed to build headless renderer");
-    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, None)
+    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, Some(TARGET_FPS))
         .fill_viewport(D::fill_viewport());
     retroglyph_window::winit::run_app(config, renderer, DemoApp::<D>::new())
         .expect("event loop failed");
@@ -290,7 +312,7 @@ pub fn run_gl<D: Demo>() {
     )
     .build()
     .expect("failed to initialize gl backend");
-    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, None)
+    let config = retroglyph_window::winit::WindowConfig::fit(&renderer, D::TITLE, Some(TARGET_FPS))
         .fill_viewport(D::fill_viewport());
     retroglyph_window::winit::run_app(config, renderer, DemoApp::<D>::new())
         .expect("event loop failed");
