@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090a0f" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="A gallery of tiled overland map rendering techniques drawn in a character grid: square, isometric, and hex tiles in Rust, running in the terminal, a native window, and the browser."
+    />
+    <title>ascii-tile-demos</title>
+    <style>
+      :root {
+        --bg: #090a0f;
+        --panel: #14161f;
+        --border: #2b2e3d;
+        --fg: #d6d4e2;
+        --dim: #8b8ba3;
+        --accent: #f6c460;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0 1.25rem 4rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 16px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 68rem;
+        margin: 0 auto;
+      }
+      header {
+        padding: 3.5rem 0 2rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2rem;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font: 700 2rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--accent);
+      }
+      .lede {
+        margin: 0;
+        max-width: 46rem;
+        color: var(--dim);
+      }
+      .lede code {
+        color: var(--fg);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.9em;
+      }
+      a {
+        color: var(--accent);
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.1rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .card h2 {
+        margin: 0;
+        font: 600 1rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--fg);
+      }
+      .blurb {
+        margin: 0;
+        color: var(--dim);
+        font-size: 0.9rem;
+        flex: 1;
+      }
+      .keys {
+        margin: 0;
+        color: #6f6f88;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.74rem;
+      }
+      .links {
+        display: flex;
+        gap: 0.45rem;
+        margin-top: 0.25rem;
+      }
+      .run {
+        flex: 1;
+        text-align: center;
+        text-decoration: none;
+        padding: 0.4rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        color: var(--dim);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.8rem;
+      }
+      .run:hover {
+        color: var(--accent);
+        border-color: #4a4d63;
+        background: #1c1f2b;
+      }
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        color: var(--dim);
+        font-size: 0.85rem;
+      }
+      .note {
+        color: var(--dim);
+        font-size: 0.88rem;
+        max-width: 46rem;
+        margin: 0 0 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>ascii-tile-demos</h1>
+        <p class="lede">
+          __COUNT__ demos of tiled overland map rendering &mdash; square, isometric, and hex &mdash;
+          drawn entirely in a grid of styled characters with
+          <a href="https://github.com/crates-lurey-io/retroglyph">retroglyph</a> and
+          <a href="https://github.com/crates-lurey-io/hexal">hexal</a>. The same Rust source runs in
+          a terminal, in a native window, and here in your browser.
+        </p>
+      </header>
+
+      <p class="note">
+        <strong>Software</strong> is the CPU rasterizer drawing to a <code>&lt;canvas&gt;</code>;
+        <strong>WebGL2</strong> is the GPU backend running the same instanced-quad renderer the
+        native OpenGL&nbsp;3.3 build uses. They should look identical &mdash; that is the point.
+        Drag to pan, and see each card for the keys it responds to.
+      </p>
+
+      <div class="grid">
+__CARDS__
+      </div>
+
+      <footer>
+        Built from
+        <a href="https://github.com/crates-lurey-io/ascii-tile-demos">crates-lurey-io/ascii-tile-demos</a>.
+        Techniques are credited in each demo's source header.
+      </footer>
+    </main>
+  </body>
+</html>
