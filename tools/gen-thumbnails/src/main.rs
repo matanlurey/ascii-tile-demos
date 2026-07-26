@@ -30,7 +30,7 @@
 
 use std::path::{Path, PathBuf};
 
-use ascii_tile_demos::{Demo, GRID_COLS, GRID_ROWS, block_tileset};
+use ascii_tile_demos::{Demo, block_tileset};
 use retroglyph_core::{Frame, Output, Terminal};
 use retroglyph_software::SoftwareBackendBuilder;
 use retroglyph_window::Presenter;
@@ -71,6 +71,15 @@ include_demo!(d14, "../../../examples/examples/14_seasons.rs");
 include_demo!(d15, "../../../examples/examples/15_minimal.rs");
 include_demo!(d16, "../../../examples/examples/16_subcell_canvas.rs");
 include_demo!(d17, "../../../examples/examples/17_tileset_sprites.rs");
+include_demo!(d18, "../../../examples/examples/18_panel_chrome.rs");
+include_demo!(d19, "../../../examples/examples/19_hex_command.rs");
+include_demo!(d20, "../../../examples/examples/20_realm_map.rs");
+include_demo!(d21, "../../../examples/examples/21_deck_plan.rs");
+include_demo!(d22, "../../../examples/examples/22_overworld_quest.rs");
+include_demo!(d23, "../../../examples/examples/23_iso_tactics.rs");
+include_demo!(d24, "../../../examples/examples/24_torchlit_crypt.rs");
+include_demo!(d25, "../../../examples/examples/25_flag_war.rs");
+include_demo!(d26, "../../../examples/examples/26_hexcrawl.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -105,7 +114,7 @@ const FRAME_DELTA: std::time::Duration = std::time::Duration::from_millis(1000 /
 const MIN_CHANGED_PIXELS: usize = 4;
 
 /// Demos in the gallery, for the closing summary line.
-const DEMO_COUNT: usize = 17;
+const DEMO_COUNT: usize = 26;
 
 /// Demos that are correctly still when left alone.
 ///
@@ -123,14 +132,22 @@ const STATIC_BY_DESIGN: &[(&str, &str)] = &[(
 /// Builds the backend a demo would get from `run_software`.
 ///
 /// Fidelity is the whole job: a thumbnail built from a different backend
-/// configuration is a picture of something no visitor will ever see. The block
-/// tileset in particular is not optional, because without it every braille,
-/// quadrant, and sextant glyph falls back to CP437's solid block and the
-/// sub-cell demos render as a featureless slab of foreground color.
+/// configuration is a picture of something no visitor will ever see. Two parts
+/// of that are easy to get wrong.
+///
+/// The block tileset is not optional: without it every braille, quadrant, and
+/// sextant glyph falls back to CP437's solid block and the sub-cell demos
+/// render as a featureless slab of foreground color.
+///
+/// [`Demo::GRID`] is not optional either, and for a subtler reason. The
+/// interface-heavy demos drop their side panels below a width threshold, so a
+/// thumbnail rendered at someone else's idea of a default grid is not merely
+/// smaller, it is a picture of the demo's *fallback* layout with the panels
+/// the demo exists to show missing entirely.
 fn backend<D: Demo>() -> SoftwareBackendBuilder {
     D::configure_software(
         SoftwareBackendBuilder::new()
-            .grid_size(GRID_COLS, GRID_ROWS)
+            .grid_size(D::GRID.0, D::GRID.1)
             .scale(1)
             .tileset(block_tileset()),
     )
@@ -273,6 +290,15 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "15_minimal", d15::Minimal);
     capture!(&out, still, "16_subcell_canvas", d16::SubcellCanvas);
     capture!(&out, still, "17_tileset_sprites", d17::TilesetSprites);
+    capture!(&out, still, "18_panel_chrome", d18::PanelChrome);
+    capture!(&out, still, "19_hex_command", d19::HexCommand);
+    capture!(&out, still, "20_realm_map", d20::RealmMap);
+    capture!(&out, still, "21_deck_plan", d21::DeckPlan);
+    capture!(&out, still, "22_overworld_quest", d22::OverworldQuest);
+    capture!(&out, still, "23_iso_tactics", d23::IsoTactics);
+    capture!(&out, still, "24_torchlit_crypt", d24::TorchlitCrypt);
+    capture!(&out, still, "25_flag_war", d25::FlagWar);
+    capture!(&out, still, "26_hexcrawl", d26::Hexcrawl);
 
     if !still.is_empty() {
         eprintln!(

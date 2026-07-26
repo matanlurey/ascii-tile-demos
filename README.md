@@ -76,9 +76,32 @@ this repo up on the way, is written up in
 | 16 | `subcell_canvas` | Half-block, quadrant, sextant, and braille sub-cell rendering |
 | 17 | `tileset_sprites` | A PNG sprite sheet in the same grid, with an ASCII fallback |
 
+The first seventeen are each about one rendering technique, drawn full-bleed.
+The rest are about what those techniques add up to: a whole game interface, at
+the resolution a game would actually use.
+
+| # | Demo | Technique |
+| --- | --- | --- |
+| 18 | `panel_chrome` | A three-column roguelike interface: framed panels, gauges, a colored log |
+| 19 | `hex_command` | A hex drawn as a multi-cell blob, with coordinate rulers and a command menu |
+| 20 | `realm_map` | Painted 4X tiles with a live movement-path preview and a turn boundary |
+| 21 | `deck_plan` | A ship deck as a labelled blueprint, with a typed command line |
+| 22 | `overworld_quest` | Dithered cliff terraces, an entity layer, and a legend derived from what is on screen |
+| 23 | `iso_tactics` | Depth-sorted walls with height, occlusion cutaway, and a HUD drawn in map space |
+| 24 | `torchlit_crypt` | Colored additive lighting, and why it is not the same question as field of view |
+| 25 | `flag_war` | Territory as colored ASCII trigrams, where flags pull population rather than order it |
+| 26 | `hexcrawl` | A hand-drawn referee map: terrain that ignores the hex grid inked over it |
+
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
 listed in each demo's status bar and on the gallery page.
+
+Demos 18 and up declare their own design grid through `Demo::GRID`, because a
+three-column interface has a width below which it is no longer showing its
+layout, only showing that it ran out of room. That is a design target rather
+than a requirement: they still lay out from the live viewport, and the snapshot
+tests deliberately run every one of them at 80x24, which is narrower than any
+of them asks for.
 
 ## Backends
 
@@ -99,7 +122,7 @@ same on all of them.
 ## tilekit
 
 The shared crate is where the reusable, testable parts live. It has no
-knowledge of any demo and 179 unit tests.
+knowledge of any demo and 211 unit tests.
 
 | Module | Contents |
 | --- | --- |
@@ -111,6 +134,8 @@ knowledge of any demo and 179 unit tests.
 | `glyphs` | Box drawing, block elements, braille, shade ramps, dithering, four sub-cell canvases |
 | `fov` | Recursive shadowcasting, hex field of view, fog-of-war state |
 | `camera` | A pan/zoom viewport in tile space with sub-tile scrolling |
+| `path` | Least-cost routing over weighted terrain, and how far this turn's budget reaches |
+| `light` | Additive colored light pools, torch flicker, and tone mapping |
 
 ### Things worth knowing
 
@@ -133,19 +158,47 @@ walking a line looking for the first blocker can step straight over it.
 `tilekit::geom::hex_line` implements the cube-lerp algorithm properly and is
 tested for contiguity in every direction.
 
-**The embedded bitmap font is CP437, and that is not extensible.** Both
-`BitmapFont::try_char_to_index` and every font in a `FallbackFontChain` route
-chars through `unicode_to_cp437`, so a fallback font can only fill gaps *within*
-CP437, never add characters to the repertoire. CP437 has the shade ramp and the
-four half blocks but none of the other ten quadrants, no sextants, and no
-braille; those all resolve to the solid-block fallback, so a braille canvas
-renders as a rectangle of solid color on the pixel backends.
+**A glyph can be the right shape or the right color, not both.** This is the
+sharpest constraint in the repo and it shaped most of the newer demos.
 
-The way out is a tileset, which does override the font for the glyphs its
-codepage names. `tools/gen-tileset` draws the missing 328 glyphs procedurally
-(they are pure geometry) into `examples/assets/blocks.png`, and the harness
-registers it for every demo on both pixel backends. Regenerate with
-`just tileset`.
+The embedded bitmap font is CP437, and the pixel backends resolve *every* glyph
+through `BitmapFont::char_to_index`, which is hardcoded to `unicode_to_cp437`
+and substitutes a solid block for anything else. A character outside CP437 does
+not fail to draw; it draws as a filled rectangle, which in a map of dense
+terrain glyphs reads as "some cells are unusually bright" rather than as a bug.
+
+`BitmapFont::with_charset` and `FallbackFontChain` exist and are documented as
+the way to extend past CP437, but neither backend calls them, so that route is
+unreachable today and a `with_charset` font panics rather than resolving
+([retroglyph#539](https://github.com/crates-lurey-io/retroglyph/issues/539)).
+
+The remaining way out is a tileset, which does override the font for the glyphs
+its codepage names. `tools/gen-tileset` draws the missing 326 glyphs
+procedurally (they are pure geometry) into `examples/assets/blocks.png`, and the
+harness registers it for every demo on both pixel backends. Regenerate with
+`just tileset`. But a sprite ignores the cell's foreground (see below), so a
+tileset glyph renders in whatever color the sheet was drawn in. The block sheet
+is a white mask, so **quadrant, sextant, and braille glyphs render white** and
+only white. `HalfBlockCanvas` is unaffected: it uses `▀▄█`, all of which CP437
+has, so it is drawn by the font and takes color normally.
+
+The practical rule, which every demo from 18 on follows: anything that carries
+information through color must be a CP437 glyph. That is why `ui::panel::bar`
+builds gauges from `█` and `▌` for half-cell precision instead of from the
+eighth blocks `▏▎▍▋▊▉` a modern terminal UI would reach for. Half-cell
+precision in the right color beats eighth-cell precision in white, because in
+these interfaces the color carries the threshold and the fill only carries the
+magnitude.
+
+This was found the hard way. Seven of `tilekit::glyphs::marker`'s ten constants
+had never rendered, and `Site::glyph_color` reaches five of them, so every
+capital, fortress, ruin, mine, and port in the gallery was a solid block.
+`examples/tests/glyphs.rs` now renders every glyph constant twice at two
+different foreground colors and asserts the result differs from the fallback
+block *and* between the two colors; it also scans every demo's source for glyph
+literals that cannot be drawn, because most glyphs here are inline in one demo
+rather than shared, and two demos independently picked `▸` before that scan
+existed.
 
 **A sprite bigger than one cell needs a span, declared per draw call.** A
 tileset sheet says nothing about how many cells its sprites occupy, and it
@@ -217,15 +270,26 @@ of them; `just lint` checks each separately.
 1. Write `examples/examples/NN_name.rs` implementing `Demo` and ending in
    `ascii_tile_demos::demo_main!(YourDemo);`.
 2. Add its `[[example]]` stanza to `examples/Cargo.toml`.
-3. Add it to `examples/tests/snapshots.rs`.
+3. Add it to `examples/tests/snapshots.rs` and `tools/gen-thumbnails`.
 4. Add a row to the table above.
+
+Two things are worth knowing before starting. Use only CP437 glyphs for
+anything whose color carries meaning, for the reasons under "Things worth
+knowing" above; the glyph test scans your source and will fail the build
+otherwise. And lay out from `term.area()` rather than from `Demo::GRID`, which
+is a design target rather than a promise: the snapshot tests run every demo at
+80x24, well under what an interface-heavy demo asks for, and `assert_draws_a_map`
+rejects a layout that responds by drawing almost nothing.
 
 Thumbnails are rendered by `tools/gen-thumbnails`, which runs after the gallery
 build and drops a `thumb.png` into each demo's directory. It uses the headless
 software backend rather than screenshotting the built pages, so it needs no
 browser and no GPU, and it must configure that backend exactly as
-`run_software` does (the block tileset especially, or every braille and
-quadrant glyph falls back to CP437's solid block).
+`run_software` does. Two parts of that bite: the block tileset (without it every
+braille and quadrant glyph falls back to CP437's solid block) and `Demo::GRID`
+(without it an interface demo renders below its own responsive threshold, so the
+thumbnail is a picture of the fallback layout with the panels the demo exists to
+show missing entirely).
 
 The same pass doubles as an animation gate: it renders each demo's settled
 frame, compares it against several later ones, and fails if nothing moved. A

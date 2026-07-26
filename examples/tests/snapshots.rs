@@ -56,6 +56,15 @@ include_demo!(d14, "../examples/14_seasons.rs");
 include_demo!(d15, "../examples/15_minimal.rs");
 include_demo!(d16, "../examples/16_subcell_canvas.rs");
 include_demo!(d17, "../examples/17_tileset_sprites.rs");
+include_demo!(d18, "../examples/18_panel_chrome.rs");
+include_demo!(d19, "../examples/19_hex_command.rs");
+include_demo!(d20, "../examples/20_realm_map.rs");
+include_demo!(d21, "../examples/21_deck_plan.rs");
+include_demo!(d22, "../examples/22_overworld_quest.rs");
+include_demo!(d23, "../examples/23_iso_tactics.rs");
+include_demo!(d24, "../examples/24_torchlit_crypt.rs");
+include_demo!(d25, "../examples/25_flag_war.rs");
+include_demo!(d26, "../examples/26_hexcrawl.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -109,6 +118,15 @@ demo_tests!(seasons, d14::Seasons);
 demo_tests!(minimal, d15::Minimal);
 demo_tests!(subcell_canvas, d16::SubcellCanvas);
 demo_tests!(tileset_sprites, d17::TilesetSprites);
+demo_tests!(panel_chrome, d18::PanelChrome);
+demo_tests!(hex_command, d19::HexCommand);
+demo_tests!(realm_map, d20::RealmMap);
+demo_tests!(deck_plan, d21::DeckPlan);
+demo_tests!(overworld_quest, d22::OverworldQuest);
+demo_tests!(iso_tactics, d23::IsoTactics);
+demo_tests!(torchlit_crypt, d24::TorchlitCrypt);
+demo_tests!(flag_war, d25::FlagWar);
+demo_tests!(hexcrawl, d26::Hexcrawl);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///

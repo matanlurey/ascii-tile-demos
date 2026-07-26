@@ -124,3 +124,39 @@ path = "examples/17_tileset_sprites.rs"
 [[test]]
 name = "snapshots"
 path = "tests/snapshots.rs"
+
+[[example]]
+name = "18_panel_chrome"
+path = "examples/18_panel_chrome.rs"
+
+[[example]]
+name = "19_hex_command"
+path = "examples/19_hex_command.rs"
+
+[[example]]
+name = "20_realm_map"
+path = "examples/20_realm_map.rs"
+
+[[example]]
+name = "21_deck_plan"
+path = "examples/21_deck_plan.rs"
+
+[[example]]
+name = "22_overworld_quest"
+path = "examples/22_overworld_quest.rs"
+
+[[example]]
+name = "23_iso_tactics"
+path = "examples/23_iso_tactics.rs"
+
+[[example]]
+name = "24_torchlit_crypt"
+path = "examples/24_torchlit_crypt.rs"
+
+[[example]]
+name = "25_flag_war"
+path = "examples/25_flag_war.rs"
+
+[[example]]
+name = "26_hexcrawl"
+path = "examples/26_hexcrawl.rs"

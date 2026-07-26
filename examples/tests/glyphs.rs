@@ -168,6 +168,87 @@ fn every_glyph_constant_takes_the_foreground_color() {
     );
 }
 
+/// Strips line comments from Rust source, leaving code.
+///
+/// Crude on purpose. The only thing this has to get right is not reporting
+/// glyphs that appear in prose: several modules discuss the characters that
+/// *cannot* be used, and a scanner that flagged its own documentation would be
+/// useless. Over-stripping (a `//` inside a string literal) can only make the
+/// scan less strict, never wrong, and no demo currently has one.
+fn strip_comments(source: &str) -> String {
+    source
+        .lines()
+        .map(|line| line.split_once("//").map_or(line, |(code, _)| code))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Every demo source in the gallery, as `(name, contents)`.
+fn demo_sources() -> Vec<(String, String)> {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(&dir).expect("the examples directory must exist") {
+        let path = entry.expect("readable dir entry").path();
+        if path.extension().is_some_and(|e| e == "rs") {
+            let name = path
+                .file_name()
+                .expect("a file name")
+                .to_string_lossy()
+                .into_owned();
+            out.push((
+                name,
+                std::fs::read_to_string(&path).expect("readable source"),
+            ));
+        }
+    }
+    out.sort();
+    assert!(!out.is_empty(), "found no demo sources to scan");
+    out
+}
+
+/// Scans every demo's *code* for characters that cannot be drawn.
+///
+/// The constant-by-constant tests above only cover `tilekit::glyphs`, which is
+/// where a shared glyph lives. Most glyphs in this gallery are not shared: they
+/// are literals written inline in one demo, and two separate demos were caught
+/// in review picking `▸` (U+25B8) as a selection marker, which is outside CP437
+/// and renders as a solid white block. Nothing in the type system distinguishes
+/// a character that draws from one that does not, so the only way to keep this
+/// from recurring is to read the source.
+///
+/// Deliberately scans text rather than requiring glyphs be declared somewhere
+/// central. A rule that depends on authors remembering to register their glyphs
+/// fails exactly when a new demo is written in a hurry, which is when it is
+/// most needed.
+#[test]
+fn no_demo_uses_a_glyph_that_cannot_be_drawn() {
+    let fallback = fallback();
+    let mut broken: Vec<String> = Vec::new();
+
+    for (name, source) in demo_sources() {
+        let code = strip_comments(&source);
+        let mut seen = std::collections::BTreeSet::new();
+        for ch in code.chars() {
+            // ASCII always draws. Everything else has to prove itself.
+            if ch.is_ascii() || !seen.insert(ch) {
+                continue;
+            }
+            if render(ch, RED) == fallback {
+                broken.push(format!("{name}: {ch:?} (U+{:04X})", ch as u32));
+            }
+        }
+    }
+
+    assert!(
+        broken.is_empty(),
+        "{} glyph literal(s) render as the fallback block rather than as \
+         themselves. CP437 is the whole repertoire the pixel backends can \
+         draw; pick a character from it, or accept a filled rectangle:\n  {}",
+        broken.len(),
+        broken.join("\n  "),
+    );
+}
+
 /// The half blocks are the widest sub-cell vocabulary that is *both* CP437 and
 /// therefore colorable, which is why the gallery's bars and canvases are built
 /// on them rather than on the eighths.
