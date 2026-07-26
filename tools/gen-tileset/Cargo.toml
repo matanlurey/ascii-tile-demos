@@ -1,0 +1,18 @@
+[package]
+name = "gen-tileset"
+version = "0.1.0"
+description = "Generates the demo sprite sheet used by 17_tileset_sprites"
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+tilekit.workspace = true
+retroglyph-core.workspace = true
