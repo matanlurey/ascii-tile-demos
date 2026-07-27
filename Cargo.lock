@@ -39,9 +39,9 @@ dependencies = [
 
 [[package]]
 name = "alpha-blend"
-version = "0.2.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4892e43308b64811b6c31ff2134c24c1be4df5762b0ecf6689417b1f973b30b"
+checksum = "3359e1d059f5057028ec171004e0560f5c431d1e72019c06c8e92f675e715e65"
 dependencies = [
  "libm",
 ]
@@ -610,9 +610,9 @@ dependencies = [
 
 [[package]]
 name = "gem"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "107804c8574f8cf41bd25bcec6e27a0f22ba1e4c11254b7b2cf9d68218acf85d"
+checksum = "9a348c782af702cf6243b7c3716d84ebe60cf96136aadcc2b73d49cdac05a3f4"
 dependencies = [
  "libm",
 ]
@@ -1590,7 +1590,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-core"
 version = "0.3.1"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "alpha-blend",
  "bitflags 2.13.1",
@@ -1605,7 +1605,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-crossterm"
 version = "0.1.4"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "crossterm",
  "retroglyph-core",
@@ -1615,7 +1615,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-gl"
 version = "0.1.0"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "glow",
  "glutin",
@@ -1630,7 +1630,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-software"
 version = "0.4.0"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "alpha-blend",
  "grixy",
@@ -1646,7 +1646,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-terminal"
 version = "0.1.4"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "retroglyph-core",
 ]
@@ -1654,7 +1654,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-terminal-wasm"
 version = "0.1.4"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "log",
  "retroglyph-core",
@@ -1665,7 +1665,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-widgets"
 version = "0.3.1"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "retroglyph-core",
  "unicode-width",
@@ -1674,7 +1674,7 @@ dependencies = [
 [[package]]
 name = "retroglyph-window"
 version = "0.3.1"
-source = "git+https://github.com/crates-lurey-io/retroglyph?rev=232d37c50eac3511472afd2da8e133b438b1e1dd#232d37c50eac3511472afd2da8e133b438b1e1dd"
+source = "git+https://github.com/crates-lurey-io/retroglyph?rev=e878716b24e6191d5849a4dd5377cfdac74376de#e878716b24e6191d5849a4dd5377cfdac74376de"
 dependencies = [
  "alpha-blend",
  "arboard",

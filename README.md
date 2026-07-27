@@ -210,8 +210,8 @@ used to return its first argument unchanged, which made
 `Color::lerp(Color::BLACK, x, t)` a silent no-op returning black, since
 `Color::BLACK` is an ANSI color). Two reasons remain: `mix` clamps `t`, so an
 unclamped animation parameter cannot extrapolate past an endpoint into a wrapped
-channel, and it does not need `retroglyph-core`'s optional `gem` feature, which
-`Color::lerp` is gated behind.
+channel, and it does not need `retroglyph-core`'s optional `color-space` feature
+(renamed from `gem` in retroglyph#556), which `Color::lerp` is gated behind.
 
 **`hexal::Hex::line_to` is not contiguous.** As of hexal 0.1.1 it returns lines
 with two-step jumps and repeated hexes along the `q == r` diagonal, so anything
