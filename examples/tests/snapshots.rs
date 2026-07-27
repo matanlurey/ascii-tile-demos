@@ -92,6 +92,12 @@ include_demo!(d50, "../examples/50_veiled_hand.rs");
 include_demo!(d51, "../examples/51_star_console.rs");
 include_demo!(d52, "../examples/52_quiet_march.rs");
 include_demo!(d53, "../examples/53_iron_colossus.rs");
+include_demo!(d54, "../examples/54_walled_dawn.rs");
+include_demo!(d55, "../examples/55_warband_sheet.rs");
+include_demo!(d56, "../examples/56_open_terms.rs");
+include_demo!(d57, "../examples/57_dealt_dungeon.rs");
+include_demo!(d58, "../examples/58_carved_lair.rs");
+include_demo!(d59, "../examples/59_city_works.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -181,6 +187,12 @@ demo_tests!(veiled_hand, d50::VeiledHand);
 demo_tests!(star_console, d51::StarConsole);
 demo_tests!(quiet_march, d52::QuietMarch);
 demo_tests!(iron_colossus, d53::IronColossus);
+demo_tests!(walled_dawn, d54::WalledDawn);
+demo_tests!(warband_sheet, d55::WarbandSheet);
+demo_tests!(open_terms, d56::OpenTerms);
+demo_tests!(dealt_dungeon, d57::DealtDungeon);
+demo_tests!(carved_lair, d58::CarvedLair);
+demo_tests!(city_works, d59::CityWorks);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///
@@ -338,5 +350,11 @@ mod phone_shapes {
         star_console => d51::StarConsole,
         quiet_march => d52::QuietMarch,
         iron_colossus => d53::IronColossus,
+        walled_dawn => d54::WalledDawn,
+        warband_sheet => d55::WarbandSheet,
+        open_terms => d56::OpenTerms,
+        dealt_dungeon => d57::DealtDungeon,
+        carved_lair => d58::CarvedLair,
+        city_works => d59::CityWorks,
     }
 }

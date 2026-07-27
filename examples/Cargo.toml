@@ -268,3 +268,27 @@ path = "examples/52_quiet_march.rs"
 [[example]]
 name = "53_iron_colossus"
 path = "examples/53_iron_colossus.rs"
+
+[[example]]
+name = "54_walled_dawn"
+path = "examples/54_walled_dawn.rs"
+
+[[example]]
+name = "55_warband_sheet"
+path = "examples/55_warband_sheet.rs"
+
+[[example]]
+name = "56_open_terms"
+path = "examples/56_open_terms.rs"
+
+[[example]]
+name = "57_dealt_dungeon"
+path = "examples/57_dealt_dungeon.rs"
+
+[[example]]
+name = "58_carved_lair"
+path = "examples/58_carved_lair.rs"
+
+[[example]]
+name = "59_city_works"
+path = "examples/59_city_works.rs"

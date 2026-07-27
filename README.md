@@ -140,6 +140,19 @@ demo already here, which is why this table is shorter than the ones above.
 | 52 | `quiet_march` | Divine Right | Region names set in spaced caps across a hex map drawn as cartography |
 | 53 | `iron_colossus` | Ogre | Numbered counters against one giant unit whose parts are shot off in turn |
 
+The final batch fills gaps rather than chasing genres. Every demo above is
+drawn top-down, isometric, or on hexes, so the first entry here exists to add
+a projection the gallery did not have at all.
+
+| # | Demo | Adapted from | Technique |
+| --- | --- | --- | --- |
+| 54 | `walled_dawn` | Kingdom: Two Crowns | A side elevation with parallax, where night arrives on a timer either way |
+| 55 | `warband_sheet` | Mordheim | A printed roster form carried entirely by typography and column rhythm |
+| 56 | `open_terms` | Crusader Kings | One opinion total, itemised into signed modifiers you can act on |
+| 57 | `dealt_dungeon` | Hand of Fate | The map and the deck are the same objects, dealt face-down |
+| 58 | `carved_lair` | Dungeon Keeper | Terrain excavated at runtime, with invaders repathing around the cut |
+| 59 | `city_works` | Civilization II | Small readouts ringing one large view, over a build queue |
+
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
 listed in each demo's status bar and on the gallery page.

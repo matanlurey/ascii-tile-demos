@@ -107,6 +107,12 @@ include_demo!(d50, "../../../examples/examples/50_veiled_hand.rs");
 include_demo!(d51, "../../../examples/examples/51_star_console.rs");
 include_demo!(d52, "../../../examples/examples/52_quiet_march.rs");
 include_demo!(d53, "../../../examples/examples/53_iron_colossus.rs");
+include_demo!(d54, "../../../examples/examples/54_walled_dawn.rs");
+include_demo!(d55, "../../../examples/examples/55_warband_sheet.rs");
+include_demo!(d56, "../../../examples/examples/56_open_terms.rs");
+include_demo!(d57, "../../../examples/examples/57_dealt_dungeon.rs");
+include_demo!(d58, "../../../examples/examples/58_carved_lair.rs");
+include_demo!(d59, "../../../examples/examples/59_city_works.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -141,7 +147,7 @@ const FRAME_DELTA: std::time::Duration = std::time::Duration::from_millis(1000 /
 const MIN_CHANGED_PIXELS: usize = 4;
 
 /// Demos in the gallery, for the closing summary line.
-const DEMO_COUNT: usize = 33;
+const DEMO_COUNT: usize = 39;
 
 /// Demos that are correctly still when left alone.
 ///
@@ -353,6 +359,12 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "51_star_console", d51::StarConsole);
     capture!(&out, still, "52_quiet_march", d52::QuietMarch);
     capture!(&out, still, "53_iron_colossus", d53::IronColossus);
+    capture!(&out, still, "54_walled_dawn", d54::WalledDawn);
+    capture!(&out, still, "55_warband_sheet", d55::WarbandSheet);
+    capture!(&out, still, "56_open_terms", d56::OpenTerms);
+    capture!(&out, still, "57_dealt_dungeon", d57::DealtDungeon);
+    capture!(&out, still, "58_carved_lair", d58::CarvedLair);
+    capture!(&out, still, "59_city_works", d59::CityWorks);
 
     if !still.is_empty() {
         eprintln!(
