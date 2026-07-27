@@ -286,7 +286,7 @@ impl TilesetSprites {
         // Clip to the map area up front so `put_span` measures its footprint
         // against the map rather than the whole screen: a tile at the bottom
         // edge must not reserve cells in the status bar.
-        let mut map = ui::clip(surface, area);
+        let mut map = surface.clip(area);
         for row in row_start..row_end {
             for col in col_start..col_end {
                 if !self.world.in_bounds(col, row) {
@@ -379,8 +379,13 @@ impl TilesetSprites {
             // covers is a property of the thing being drawn, not of the sheet
             // it came from. The covered cells carry a space as their text
             // fallback, which a pixel backend skips and a cell backend prints.
-            let rows = tile_span(self.sprite_at(biome, col, row));
-            surface.put_span((ox, oy), &borrow(&rows), style);
+            surface.put_span_uniform(
+                (ox, oy),
+                (TILE.w as u16, TILE.h as u16),
+                self.sprite_at(biome, col, row),
+                ' ',
+                style,
+            );
         } else {
             // No sprite to span: one glyph in the tile's first cell, blanks
             // across the rest so nothing from the frame below shows through.
@@ -410,8 +415,13 @@ impl TilesetSprites {
             let marker_style = Style::new().fg(marker_color);
             let mut over = surface.on_layer(1);
             if sprites {
-                let rows = tile_span(marker_glyph);
-                over.put_span((ox, oy), &borrow(&rows), marker_style);
+                over.put_span_uniform(
+                    (ox, oy),
+                    (TILE.w as u16, TILE.h as u16),
+                    marker_glyph,
+                    ' ',
+                    marker_style,
+                );
             } else {
                 over.put((ox, oy), marker_glyph, marker_style);
             }
@@ -457,32 +467,6 @@ fn terrain_tileset() -> retroglyph_window::tileset::TilesetOptions {
         .expect("the generated tileset must decode")
 }
 
-/// The row strings [`Surface::put_span`] wants for a span covering one [`TILE`]:
-/// `anchor` in the top-left cell, a blank in every cell it covers.
-///
-/// The blanks are the span's text fallback, which is why they are spaces and
-/// not something decorative: a cell backend prints them, and a pixel backend
-/// skips them in favour of the sprite `anchor` resolves to.
-fn tile_span(anchor: char) -> Vec<String> {
-    (0..TILE.h)
-        .map(|row| {
-            (0..TILE.w)
-                .map(|col| if row == 0 && col == 0 { anchor } else { ' ' })
-                .collect()
-        })
-        .collect()
-}
-
-/// Reborrows [`tile_span`]'s rows as the `&[&str]` [`Surface::put_span`] takes.
-///
-/// A separate step because the rows have to outlive the call and `put_span`
-/// accepts only a slice of borrows, so a computed footprint cannot be passed
-/// inline; see
-/// <https://github.com/crates-lurey-io/retroglyph/issues/536>.
-fn borrow(rows: &[String]) -> Vec<&str> {
-    rows.iter().map(String::as_str).collect()
-}
-
 /// Display name for a sprite, for the status readout.
 const fn sprite_name(sprite: SpriteId) -> &'static str {
     match sprite {
@@ -526,7 +510,7 @@ impl Demo for TilesetSprites {
     /// sheet used to declare that with a `spacing(2, 1)` option, which could
     /// never work, because two sprites from one sheet can legitimately cover
     /// different numbers of cells. It is a per-draw decision now, made by
-    /// [`tile_span`] and [`Surface::put_span`].
+    /// [`Surface::put_span_uniform`].
     #[cfg(feature = "software")]
     fn configure_software(
         builder: retroglyph_software::SoftwareBackendBuilder,

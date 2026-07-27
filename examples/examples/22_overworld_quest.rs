@@ -840,7 +840,7 @@ impl Demo for OverworldQuest {
         // reference's single message line under the field.
         if rest.height() > 0 {
             let log_row = Rect::new(rest.left(), rest.bottom() - 1, rest.width(), 1);
-            let mut clipped = ui::clip(&mut surface, log_row);
+            let mut clipped = surface.clip(log_row);
             self.log.draw(&mut clipped, log_row, rgb(4, 4, 6));
         }
 

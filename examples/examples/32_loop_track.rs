@@ -1364,7 +1364,7 @@ impl LoopTrack {
         if inner.width() == 0 || inner.height() == 0 {
             return;
         }
-        let mut clipped = ui::clip(surface, inner);
+        let mut clipped = surface.clip(inner);
         self.draw_field(&mut clipped, inner);
         self.draw_actors(&mut clipped, inner);
     }

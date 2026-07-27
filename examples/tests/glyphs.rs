@@ -277,3 +277,31 @@ fn half_blocks_are_colorable_but_eighth_blocks_are_not() {
         );
     }
 }
+
+/// The sub-cell glyphs the block tileset supplies take the cell's foreground.
+///
+/// These are not CP437, so they come from `blocks.png` rather than the font.
+/// A sprite normally ignores `fg` and composites its own pixels, which is why
+/// every quadrant, sextant, and braille cell in the gallery used to render
+/// white whatever color the demo asked for: `16_subcell_canvas` computed a
+/// real two-color result per cell and three of its four panels threw it away.
+///
+/// `launch::block_tileset` now declares the sheet `SheetColor::Mask`
+/// (retroglyph#548, applied by both pixel backends in #557), so a white mask
+/// pixel takes `fg` exactly like a glyph. This is the assertion that keeps it
+/// that way: drop the `.color(SheetColor::Mask)` and this fails.
+#[test]
+fn tileset_subcell_glyphs_take_the_foreground_color() {
+    // One quadrant, one sextant, one braille cell: the three families in
+    // `assets/blocks.codepage.txt`, none of which CP437 names.
+    for ch in ['\u{2596}', '\u{1FB00}', '\u{2801}'] {
+        assert_ne!(
+            render(ch, RED),
+            render(ch, GREEN),
+            "{ch:?} comes from the block tileset and renders identically at two \
+             foreground colors, so the sheet is being composited as artwork \
+             rather than masked. Check that block_tileset() still sets \
+             SheetColor::Mask."
+        );
+    }
+}

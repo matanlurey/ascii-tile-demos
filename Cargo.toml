@@ -16,13 +16,13 @@ categories = ["game-development", "graphics"]
 # have landed on main but are not published yet. Nothing here is a path
 # dependency, so this repo still clones and builds standalone. Swap these back
 # to version requirements once the next retroglyph release goes out.
-retroglyph-core = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-crossterm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-gl = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-software = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-terminal-wasm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-widgets = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
-retroglyph-window = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "232d37c50eac3511472afd2da8e133b438b1e1dd" }
+retroglyph-core = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-crossterm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-gl = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-software = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-terminal-wasm = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-widgets = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
+retroglyph-window = { git = "https://github.com/crates-lurey-io/retroglyph", rev = "e878716b24e6191d5849a4dd5377cfdac74376de" }
 hexal = "0.1.1"
 tilekit = { path = "crates/tilekit", version = "0.1.0" }
 

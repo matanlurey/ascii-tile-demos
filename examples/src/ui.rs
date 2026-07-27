@@ -86,36 +86,13 @@ pub fn fill(surface: &mut Surface<'_>, rect: Rect, style: Style) {
     surface.fill_rect(rect, ' ', style);
 }
 
-/// A [`Surface`] over the same grid and layer as `surface`, but clipping to
-/// `area` instead of `surface`'s own area.
-///
-/// Coordinates are unchanged (both areas live in the grid's space), so this is
-/// purely a tighter clip. The chrome bars need it because [`Surface::print`]
-/// *wraps* text that runs past the right edge onto the next row: printing a
-/// too-long title into a whole-screen surface would spill the overflow across
-/// the top row of the map. Clipped to a 1-row bar, the wrapped remainder falls
-/// outside the area and is dropped, which is what a single-line bar wants.
-///
-/// It is also what makes [`Surface::put_span`] usable for a map drawn inside a
-/// sub-rect: a span refuses to write unless its whole footprint fits the
-/// surface's area, and "fits the screen" is the wrong question when the map
-/// stops one row above the status bar.
-///
-/// Goes through [`Surface::grid_mut`] because `Surface` has no narrowing
-/// constructor of its own; see
-/// <https://github.com/crates-lurey-io/retroglyph/issues/535>.
-pub const fn clip<'g>(surface: &'g mut Surface<'_>, area: Rect) -> Surface<'g> {
-    let layer = surface.layer();
-    Surface::new(surface.grid_mut(), area, layer)
-}
-
 /// Draws the top bar: demo number and title on the left, blurb on the right if
 /// it fits.
 pub fn title_bar<D: Demo>(surface: &mut Surface<'_>, area: Rect) {
     if area.height() == 0 {
         return;
     }
-    let mut bar = clip(surface, area);
+    let mut bar = surface.clip(area);
     bar.fill_rect(area, ' ', Style::new().bg(CHROME_BG));
     let w = area.width_usize();
     if w < 4 {
@@ -148,7 +125,7 @@ pub fn status_bar<D: Demo>(surface: &mut Surface<'_>, area: Rect, left: &str, fp
     if area.height() == 0 {
         return;
     }
-    let mut bar = clip(surface, area);
+    let mut bar = surface.clip(area);
     bar.fill_rect(area, ' ', Style::new().bg(CHROME_BG));
     let w = area.width_usize();
     if w < 4 {
