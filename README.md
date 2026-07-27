@@ -39,9 +39,13 @@ The `retroglyph-*` dependencies are currently pinned to a git revision rather
 than a crates.io version: the demos track APIs that have landed on retroglyph's
 `main` but are not published yet. Nothing is a path dependency, so the repo still
 clones and builds standalone; the pin goes back to a version requirement once the
-next retroglyph release goes out. What that revision changed, and what tripped
-this repo up on the way, is written up in
-[retroglyph#538](https://github.com/crates-lurey-io/retroglyph/issues/538).
+next retroglyph release goes out. The pin is currently `e878716b`. What the
+previous revision changed, and what tripped this repo up on the way, is written
+up in [retroglyph#538](https://github.com/crates-lurey-io/retroglyph/issues/538);
+`e878716b` needed no code change to compile, but it retired two workarounds (see
+"Things worth knowing") and shipped one crash
+([retroglyph#567](https://github.com/crates-lurey-io/retroglyph/issues/567)),
+which is why the windowed backends are unusable at this pin until that lands.
 
 ## Layout
 
@@ -219,29 +223,40 @@ walking a line looking for the first blocker can step straight over it.
 `tilekit::geom::hex_line` implements the cube-lerp algorithm properly and is
 tested for contiguity in every direction.
 
-**A glyph can be the right shape or the right color, not both.** This is the
-sharpest constraint in the repo and it shaped most of the newer demos.
+**A glyph has to be in CP437 or in the tileset, or it draws as a solid block.**
+This was the sharpest constraint in the repo and it shaped most of the newer
+demos. Half of it is now gone; the half that remains is what still matters.
 
-The embedded bitmap font is CP437, and the pixel backends resolve *every* glyph
-through `BitmapFont::char_to_index`, which is hardcoded to `unicode_to_cp437`
-and substitutes a solid block for anything else. A character outside CP437 does
-not fail to draw; it draws as a filled rectangle, which in a map of dense
-terrain glyphs reads as "some cells are unusually bright" rather than as a bug.
+The embedded bitmap font is CP437. A character outside it does not fail to draw;
+it draws as a filled rectangle, which in a map of dense terrain glyphs reads as
+"some cells are unusually bright" rather than as a bug.
 
-`BitmapFont::with_charset` and `FallbackFontChain` exist and are documented as
-the way to extend past CP437, but neither backend calls them, so that route is
-unreachable today and a `with_charset` font panics rather than resolving
-([retroglyph#539](https://github.com/crates-lurey-io/retroglyph/issues/539)).
+The way out is a tileset, which overrides the font for the glyphs its codepage
+names. `tools/gen-tileset` draws the missing 326 glyphs procedurally (they are
+pure geometry) into `examples/assets/blocks.png`, and the harness registers it
+for every demo on both pixel backends. Regenerate with `just tileset`.
 
-The remaining way out is a tileset, which does override the font for the glyphs
-its codepage names. `tools/gen-tileset` draws the missing 326 glyphs
-procedurally (they are pure geometry) into `examples/assets/blocks.png`, and the
-harness registers it for every demo on both pixel backends. Regenerate with
-`just tileset`. But a sprite ignores the cell's foreground (see below), so a
-tileset glyph renders in whatever color the sheet was drawn in. The block sheet
-is a white mask, so **quadrant, sextant, and braille glyphs render white** and
-only white. `HalfBlockCanvas` is unaffected: it uses `▀▄█`, all of which CP437
-has, so it is drawn by the font and takes color normally.
+**The color half of this constraint is dead as of retroglyph e878716b.** A
+tileset sheet can now declare itself a `SheetColor::Mask`, and a mask sheet's
+pixels are tinted by the cell's resolved foreground exactly the way a font
+glyph's are
+([retroglyph#548](https://github.com/crates-lurey-io/retroglyph/pull/548),
+applied by both pixel backends in
+[#557](https://github.com/crates-lurey-io/retroglyph/pull/557)). `blocks.png` is
+a white mask, so `launch::block_tileset` sets `SheetColor::Mask` and quadrant,
+sextant, and braille glyphs take their color like everything else. Before that
+they rendered white and only white, which meant `16_subcell_canvas` computed a
+real two-color result per cell and threw it away in three of its four panels.
+`examples/tests/glyphs.rs::tileset_subcell_glyphs_take_the_foreground_color`
+pins it.
+
+A second route also opened and is not taken yet:
+[retroglyph#550](https://github.com/crates-lurey-io/retroglyph/pull/550) made
+both pixel backends resolve glyphs through a `FontChain`, so a
+`BitmapFont::with_charset` fallback font can supply these characters directly
+and skip the sprite path. That would retire the PNG, the codepage file, and
+`gen-tileset` together. The sheet already exists and already works, so it stays
+a follow-up.
 
 **A tappable control is 9x4 cells, and that is why these demos are drawn
 large.** The browser build fills the viewport and `retroglyph-window` caps the
@@ -260,13 +275,20 @@ landscape. The responsive range is not "narrow to wide" but *tall and narrow* to
 rather than by width, and a demo that branched on width alone would break one of
 the two.
 
-The practical rule, which every demo from 18 on follows: anything that carries
-information through color must be a CP437 glyph. That is why `ui::panel::bar`
-builds gauges from `█` and `▌` for half-cell precision instead of from the
-eighth blocks `▏▎▍▋▊▉` a modern terminal UI would reach for. Half-cell
-precision in the right color beats eighth-cell precision in white, because in
-these interfaces the color carries the threshold and the fill only carries the
-magnitude.
+The practical rule every demo from 18 on was written against: anything that
+carries information through color must be a CP437 glyph. That is why
+`ui::panel::bar` builds gauges from `█` and `▌` for half-cell precision instead
+of from the eighth blocks `▏▎▍▋▊▉` a modern terminal UI would reach for.
+Half-cell precision in the right color beat eighth-cell precision in white,
+because in these interfaces the color carries the threshold and the fill only
+carries the magnitude.
+
+With the mask sheet the rule is now weaker than the code assumes: a glyph only
+has to be *drawable* (CP437 or in the tileset), not CP437 specifically. The
+eighth blocks are still neither, so `ui::panel::bar` is unchanged and
+`half_blocks_are_colorable_but_eighth_blocks_are_not` still passes; adding them
+to the sheet's codepage is all that stands between the gallery and eighth-cell
+gauges.
 
 This was found the hard way. Seven of `tilekit::glyphs::marker`'s ten constants
 had never rendered, and `Site::glyph_color` reaches five of them, so every
@@ -281,18 +303,31 @@ existed.
 **A sprite bigger than one cell needs a span, declared per draw call.** A
 tileset sheet says nothing about how many cells its sprites occupy, and it
 cannot: two sprites from one sheet can legitimately cover different footprints.
-`Surface::put_span(pos, rows, style)` is where that is declared. `rows[0]`'s
-first character is the anchor glyph a pixel backend looks up in its sprite cache
-and draws once across the whole footprint; the rest are the span's text fallback,
-which cell backends print and pixel backends skip. `17_tileset_sprites` uses it
-for its 16x16 sprites over 2x1 cells of the 8x16 font grid.
+The span is where that is declared. `Surface::put_span_uniform(pos, size,
+anchor, fill, style)` covers the common case: `anchor` is the glyph a pixel
+backend looks up in its sprite cache and draws once across the whole footprint,
+and `fill` is the text fallback the covered cells carry, which cell backends
+print and pixel backends skip. `17_tileset_sprites` uses it for its 16x16
+sprites over 2x1 cells of the 8x16 font grid. `put_span(pos, rows, style)` takes
+explicit per-row strings for the rarer case where the fallback text is not
+uniform.
 
-**A sprite's pixels are not modulated by the cell's colors.** Both pixel
-backends blit sprite pixels verbatim and source-over composite them, so `fg` is
-not a tint and `bg` shows only through transparent pixels. A sprite sheet
-animates or recolors by *choosing different art*, not by shading one tile, which
-is why `17_tileset_sprites` animates its water by swapping between two water
-sprites along a moving band.
+**A sprite's `fg` is not a tint, but `Surface::with_tint` is.** Both pixel
+backends composite an `Art` sheet's pixels verbatim, so `fg` does not shade them
+and `bg` shows only through transparent ones. What changed at e878716b is that a
+sprite can now be modulated on purpose: `Surface::with_tint(Tint::multiply(..))`
+darkens and `Tint::mix(..)` blends toward a color, and both pixel backends apply
+it ([retroglyph#545](https://github.com/crates-lurey-io/retroglyph/pull/545),
+[#546](https://github.com/crates-lurey-io/retroglyph/pull/546),
+[#557](https://github.com/crates-lurey-io/retroglyph/pull/557)).
+`17_tileset_sprites` still animates its water by swapping between two water
+sprites, which is the right tool there because the two sprites have different
+silhouettes, not merely different shading.
+
+A tint reaches sprites only. Font glyphs are painted in the cell's own `Style`,
+tinted or not, so a lighting pass over ASCII terrain still resolves per-cell
+`fg`/`bg` itself, the way `24_torchlit_crypt`, `44_dusk_field`, and
+`45_night_walk` do.
 
 **The winit driver only redraws on demand unless you opt out.** By default
 `about_to_wait` gates every redraw on something having happened (input, resize,
