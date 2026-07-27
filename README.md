@@ -126,6 +126,20 @@ one is built around the single element that makes its source recognizable.
 | 45 | `night_walk` | Traveller's Hymn | A bestiary that unredacts itself, in a world too dark to see across |
 | 46 | `party_pause` | Baldur's Gate II | Real-time-with-pause, and the portrait column that makes it legible |
 
+The last batch reaches further back, into 4X games, roguelikes, and board
+wargames. Twelve candidates were screenshotted and seven cut for duplicating a
+demo already here, which is why this table is shorter than the ones above.
+
+| # | Demo | Adapted from | Technique |
+| --- | --- | --- | --- |
+| 47 | `hollow_talk` | Zorbus | Speech balloons with pointer tails, anchored in the dungeon rather than a log |
+| 48 | `twin_planes` | Master of Magic | One set of coordinates, two overlaid worlds, and a toggle between them |
+| 49 | `planet_fall` | Alpha Centauri | Isometric elevation under faction borders, with a three-way budget to spend |
+| 50 | `veiled_hand` | Shadow of the Forbidden Gods | A hidden villain's task accruing per turn against two rising doom meters |
+| 51 | `star_console` | Star Wars Rebellion | Draggable, closable, stacking windows inside a terminal |
+| 52 | `quiet_march` | Divine Right | Region names set in spaced caps across a hex map drawn as cartography |
+| 53 | `iron_colossus` | Ogre | Numbered counters against one giant unit whose parts are shot off in turn |
+
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
 listed in each demo's status bar and on the gallery page.

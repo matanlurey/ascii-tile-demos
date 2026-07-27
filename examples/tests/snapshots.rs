@@ -85,6 +85,13 @@ include_demo!(d43, "../examples/43_bone_lord.rs");
 include_demo!(d44, "../examples/44_dusk_field.rs");
 include_demo!(d45, "../examples/45_night_walk.rs");
 include_demo!(d46, "../examples/46_party_pause.rs");
+include_demo!(d47, "../examples/47_hollow_talk.rs");
+include_demo!(d48, "../examples/48_twin_planes.rs");
+include_demo!(d49, "../examples/49_planet_fall.rs");
+include_demo!(d50, "../examples/50_veiled_hand.rs");
+include_demo!(d51, "../examples/51_star_console.rs");
+include_demo!(d52, "../examples/52_quiet_march.rs");
+include_demo!(d53, "../examples/53_iron_colossus.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -167,6 +174,13 @@ demo_tests!(bone_lord, d43::BoneLord);
 demo_tests!(dusk_field, d44::DuskField);
 demo_tests!(night_walk, d45::NightWalk);
 demo_tests!(party_pause, d46::PartyPause);
+demo_tests!(hollow_talk, d47::HollowTalk);
+demo_tests!(twin_planes, d48::TwinPlanes);
+demo_tests!(planet_fall, d49::PlanetFall);
+demo_tests!(veiled_hand, d50::VeiledHand);
+demo_tests!(star_console, d51::StarConsole);
+demo_tests!(quiet_march, d52::QuietMarch);
+demo_tests!(iron_colossus, d53::IronColossus);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///
@@ -317,5 +331,12 @@ mod phone_shapes {
         dusk_field => d44::DuskField,
         night_walk => d45::NightWalk,
         party_pause => d46::PartyPause,
+        hollow_talk => d47::HollowTalk,
+        twin_planes => d48::TwinPlanes,
+        planet_fall => d49::PlanetFall,
+        veiled_hand => d50::VeiledHand,
+        star_console => d51::StarConsole,
+        quiet_march => d52::QuietMarch,
+        iron_colossus => d53::IronColossus,
     }
 }

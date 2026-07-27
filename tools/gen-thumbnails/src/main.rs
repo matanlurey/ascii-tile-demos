@@ -100,6 +100,13 @@ include_demo!(d43, "../../../examples/examples/43_bone_lord.rs");
 include_demo!(d44, "../../../examples/examples/44_dusk_field.rs");
 include_demo!(d45, "../../../examples/examples/45_night_walk.rs");
 include_demo!(d46, "../../../examples/examples/46_party_pause.rs");
+include_demo!(d47, "../../../examples/examples/47_hollow_talk.rs");
+include_demo!(d48, "../../../examples/examples/48_twin_planes.rs");
+include_demo!(d49, "../../../examples/examples/49_planet_fall.rs");
+include_demo!(d50, "../../../examples/examples/50_veiled_hand.rs");
+include_demo!(d51, "../../../examples/examples/51_star_console.rs");
+include_demo!(d52, "../../../examples/examples/52_quiet_march.rs");
+include_demo!(d53, "../../../examples/examples/53_iron_colossus.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -134,7 +141,7 @@ const FRAME_DELTA: std::time::Duration = std::time::Duration::from_millis(1000 /
 const MIN_CHANGED_PIXELS: usize = 4;
 
 /// Demos in the gallery, for the closing summary line.
-const DEMO_COUNT: usize = 26;
+const DEMO_COUNT: usize = 33;
 
 /// Demos that are correctly still when left alone.
 ///
@@ -339,6 +346,13 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "44_dusk_field", d44::DuskField);
     capture!(&out, still, "45_night_walk", d45::NightWalk);
     capture!(&out, still, "46_party_pause", d46::PartyPause);
+    capture!(&out, still, "47_hollow_talk", d47::HollowTalk);
+    capture!(&out, still, "48_twin_planes", d48::TwinPlanes);
+    capture!(&out, still, "49_planet_fall", d49::PlanetFall);
+    capture!(&out, still, "50_veiled_hand", d50::VeiledHand);
+    capture!(&out, still, "51_star_console", d51::StarConsole);
+    capture!(&out, still, "52_quiet_march", d52::QuietMarch);
+    capture!(&out, still, "53_iron_colossus", d53::IronColossus);
 
     if !still.is_empty() {
         eprintln!(

@@ -240,3 +240,31 @@ path = "examples/45_night_walk.rs"
 [[example]]
 name = "46_party_pause"
 path = "examples/46_party_pause.rs"
+
+[[example]]
+name = "47_hollow_talk"
+path = "examples/47_hollow_talk.rs"
+
+[[example]]
+name = "48_twin_planes"
+path = "examples/48_twin_planes.rs"
+
+[[example]]
+name = "49_planet_fall"
+path = "examples/49_planet_fall.rs"
+
+[[example]]
+name = "50_veiled_hand"
+path = "examples/50_veiled_hand.rs"
+
+[[example]]
+name = "51_star_console"
+path = "examples/51_star_console.rs"
+
+[[example]]
+name = "52_quiet_march"
+path = "examples/52_quiet_march.rs"
+
+[[example]]
+name = "53_iron_colossus"
+path = "examples/53_iron_colossus.rs"
