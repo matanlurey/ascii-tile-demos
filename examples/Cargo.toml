@@ -292,3 +292,7 @@ path = "examples/58_carved_lair.rs"
 [[example]]
 name = "59_city_works"
 path = "examples/59_city_works.rs"
+
+[[example]]
+name = "60_tyrant_age"
+path = "examples/60_tyrant_age.rs"
