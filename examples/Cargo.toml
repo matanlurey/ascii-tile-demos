@@ -294,6 +294,10 @@ name = "59_city_works"
 path = "examples/59_city_works.rs"
 
 [[example]]
+name = "66_saints_road"
+path = "examples/66_saints_road.rs"
+
+[[example]]
 name = "65_domesday_shire"
 path = "examples/65_domesday_shire.rs"
 
