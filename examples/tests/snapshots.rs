@@ -98,6 +98,7 @@ include_demo!(d56, "../examples/56_open_terms.rs");
 include_demo!(d57, "../examples/57_dealt_dungeon.rs");
 include_demo!(d58, "../examples/58_carved_lair.rs");
 include_demo!(d59, "../examples/59_city_works.rs");
+include_demo!(d64, "../examples/64_edict_scales.rs");
 include_demo!(d63, "../examples/63_grift_parley.rs");
 include_demo!(d62, "../examples/62_quartered_arms.rs");
 include_demo!(d60, "../examples/60_tyrant_age.rs");
@@ -197,6 +198,7 @@ demo_tests!(open_terms, d56::OpenTerms);
 demo_tests!(dealt_dungeon, d57::DealtDungeon);
 demo_tests!(carved_lair, d58::CarvedLair);
 demo_tests!(city_works, d59::CityWorks);
+demo_tests!(edict_scales, d64::EdictScales);
 demo_tests!(grift_parley, d63::GriftParley);
 demo_tests!(quartered_arms, d62::QuarteredArms);
 demo_tests!(tyrant_age, d60::TyrantAge);
@@ -364,6 +366,7 @@ mod phone_shapes {
         dealt_dungeon => d57::DealtDungeon,
         carved_lair => d58::CarvedLair,
         city_works => d59::CityWorks,
+        edict_scales => d64::EdictScales,
         grift_parley => d63::GriftParley,
         quartered_arms => d62::QuarteredArms,
         tyrant_age => d60::TyrantAge,

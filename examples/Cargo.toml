@@ -294,6 +294,10 @@ name = "59_city_works"
 path = "examples/59_city_works.rs"
 
 [[example]]
+name = "64_edict_scales"
+path = "examples/64_edict_scales.rs"
+
+[[example]]
 name = "63_grift_parley"
 path = "examples/63_grift_parley.rs"
 
