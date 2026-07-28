@@ -294,6 +294,10 @@ name = "59_city_works"
 path = "examples/59_city_works.rs"
 
 [[example]]
+name = "68_mage_thrones"
+path = "examples/68_mage_thrones.rs"
+
+[[example]]
 name = "67_shire_harvest"
 path = "examples/67_shire_harvest.rs"
 
