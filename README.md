@@ -156,6 +156,7 @@ a projection the gallery did not have at all.
 | 57 | `dealt_dungeon` | Hand of Fate | The map and the deck are the same objects, dealt face-down |
 | 58 | `carved_lair` | Dungeon Keeper | Terrain excavated at runtime, with invaders repathing around the cut |
 | 59 | `city_works` | Civilization II | Small readouts ringing one large view, over a build queue |
+| 60 | `tyrant_age` | Lands of Achra | A wrapped, word-wise rich-text run: one sentence, six colors |
 
 Every demo animates on its own and responds to keys and mouse. `Q` or `Escape`
 quits; `R` rerolls the world; arrows or WASD pan; drag pans. Per-demo keys are
