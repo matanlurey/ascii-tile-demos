@@ -296,3 +296,7 @@ path = "examples/59_city_works.rs"
 [[example]]
 name = "60_tyrant_age"
 path = "examples/60_tyrant_age.rs"
+
+[[example]]
+name = "61_light_years"
+path = "examples/61_light_years.rs"
