@@ -1405,6 +1405,11 @@ mod tests {
     use super::{Argument, Cluster, GriftParley, MAX_SATS, TargetId, cluster_layout, cluster_tier};
     use retroglyph_core::Rect;
 
+    // `hit` only ever adds and subtracts the exact f32 literals below, so
+    // the results are exact under IEEE-754 rather than accumulated from any
+    // rounding-prone computation; an epsilon comparison would just hide a
+    // real regression in `hit`'s arithmetic behind a tolerance.
+    #[allow(clippy::float_cmp)]
     #[test]
     fn hit_absorbs_with_composure_before_hp_unless_pierced() {
         let mut arg = Argument::core("Test", 10.0, 5.0);

@@ -113,6 +113,16 @@ include_demo!(d56, "../../../examples/examples/56_open_terms.rs");
 include_demo!(d57, "../../../examples/examples/57_dealt_dungeon.rs");
 include_demo!(d58, "../../../examples/examples/58_carved_lair.rs");
 include_demo!(d59, "../../../examples/examples/59_city_works.rs");
+include_demo!(d60, "../../../examples/examples/60_tyrant_age.rs");
+include_demo!(d61, "../../../examples/examples/61_light_years.rs");
+include_demo!(d62, "../../../examples/examples/62_quartered_arms.rs");
+include_demo!(d63, "../../../examples/examples/63_grift_parley.rs");
+include_demo!(d64, "../../../examples/examples/64_edict_scales.rs");
+include_demo!(d65, "../../../examples/examples/65_domesday_shire.rs");
+include_demo!(d66, "../../../examples/examples/66_saints_road.rs");
+include_demo!(d67, "../../../examples/examples/67_shire_harvest.rs");
+include_demo!(d68, "../../../examples/examples/68_mage_thrones.rs");
+include_demo!(d69, "../../../examples/examples/69_spoken_odds.rs");
 
 /// Frames to advance before the thumbnail is taken.
 ///
@@ -147,7 +157,7 @@ const FRAME_DELTA: std::time::Duration = std::time::Duration::from_millis(1000 /
 const MIN_CHANGED_PIXELS: usize = 4;
 
 /// Demos in the gallery, for the closing summary line.
-const DEMO_COUNT: usize = 39;
+const DEMO_COUNT: usize = 69;
 
 /// Demos that are correctly still when left alone.
 ///
@@ -365,6 +375,16 @@ fn main() -> std::io::Result<()> {
     capture!(&out, still, "57_dealt_dungeon", d57::DealtDungeon);
     capture!(&out, still, "58_carved_lair", d58::CarvedLair);
     capture!(&out, still, "59_city_works", d59::CityWorks);
+    capture!(&out, still, "60_tyrant_age", d60::TyrantAge);
+    capture!(&out, still, "61_light_years", d61::LightYears);
+    capture!(&out, still, "62_quartered_arms", d62::QuarteredArms);
+    capture!(&out, still, "63_grift_parley", d63::GriftParley);
+    capture!(&out, still, "64_edict_scales", d64::EdictScales);
+    capture!(&out, still, "65_domesday_shire", d65::DomesdayShire);
+    capture!(&out, still, "66_saints_road", d66::SaintsRoad);
+    capture!(&out, still, "67_shire_harvest", d67::ShireHarvest);
+    capture!(&out, still, "68_mage_thrones", d68::MageThrones);
+    capture!(&out, still, "69_spoken_odds", d69::SpokenOdds);
 
     if !still.is_empty() {
         eprintln!(

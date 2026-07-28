@@ -677,11 +677,28 @@ fn draw_crest(surface: &mut Surface<'_>, area: Rect, nation: &Nation) {
 }
 
 /// Draws one wall tile: the crest, a caption with the nation's name, and (if
-/// `selected`) corner marks in the accent color. The corners land in the
-/// tile's own padding cells, never on the crest itself, so selection never
-/// obscures the thing it is pointing at.
-fn draw_crest_tile(surface: &mut Surface<'_>, tile: Rect, nation: &Nation, selected: bool) {
-    let corner_color = if selected { ui::ACCENT } else { panel::FRAME };
+/// `selected`) corner marks in the accent color that breathe gently with
+/// `time`. The corners land in the tile's own padding cells, never on the
+/// crest itself, so selection never obscures the thing it is pointing at.
+///
+/// The pulse (rather than a static accent) is the only thing on this screen
+/// that has a reason to move on its own: every other pixel is a pure function
+/// of the selected nation and only changes on input. A hard on/off blink
+/// would compete with the crests for attention; blending toward white and
+/// back is readable as "this is the live cursor" without it.
+fn draw_crest_tile(
+    surface: &mut Surface<'_>,
+    tile: Rect,
+    nation: &Nation,
+    selected: bool,
+    elapsed: f32,
+) {
+    let corner_color = if selected {
+        let pulse = (elapsed * 2.0).sin().mul_add(0.5, 0.5);
+        palette::mix(ui::ACCENT, palette::WHITE, pulse * 0.4)
+    } else {
+        panel::FRAME
+    };
     let corner_style = Style::new().fg(corner_color).bg(ui::BG);
     let (left, top) = (tile.left(), tile.top());
     let right = tile.left() + TILE_W - 1;
@@ -955,7 +972,13 @@ impl QuarteredArms {
             }
             let tile_rect = Rect::new(tx, ty, TILE_W, TILE_H);
             self.hotspots.push(tile_rect, Action(i));
-            draw_crest_tile(surface, tile_rect, &self.nations[i], i == self.selected);
+            draw_crest_tile(
+                surface,
+                tile_rect,
+                &self.nations[i],
+                i == self.selected,
+                self.time,
+            );
         }
     }
 
@@ -1117,8 +1140,8 @@ ascii_tile_demos::demo_main!(QuarteredArms);
 #[cfg(test)]
 mod tests {
     use super::{
-        MAX_RETRY_ATTEMPTS, NUM_NATIONS, SIMILARITY_THRESHOLD, caption_for, fingerprint,
-        generate_nations, mean_color_distance,
+        NUM_NATIONS, SIMILARITY_THRESHOLD, caption_for, fingerprint, generate_nations,
+        mean_color_distance,
     };
 
     /// The reject-and-retry pass's whole point: across a handful of seeds,
