@@ -244,8 +244,8 @@ impl TilesetSprites {
                     (self.cursor.row - world.row) * TILE.h,
                 );
             }
-            MouseEventKind::ScrollUp => self.camera.pan(0, -2),
-            MouseEventKind::ScrollDown => self.camera.pan(0, 2),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.camera.pan(0, -2),
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.camera.pan(0, 2),
             _ => {}
         }
     }

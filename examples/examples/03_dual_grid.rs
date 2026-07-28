@@ -148,8 +148,8 @@ impl DualGridDemo {
                 },
                 Event::Mouse(mouse) => match mouse.kind {
                     MouseEventKind::Drag(MouseButton::Left) => self.pan(0, 0),
-                    MouseEventKind::ScrollUp => self.pan(0, -2),
-                    MouseEventKind::ScrollDown => self.pan(0, 2),
+                    MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.pan(0, -2),
+                    MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.pan(0, 2),
                     _ => {}
                 },
                 _ => {}

@@ -39,13 +39,17 @@ The `retroglyph-*` dependencies are currently pinned to a git revision rather
 than a crates.io version: the demos track APIs that have landed on retroglyph's
 `main` but are not published yet. Nothing is a path dependency, so the repo still
 clones and builds standalone; the pin goes back to a version requirement once the
-next retroglyph release goes out. The pin is currently `e878716b`. What the
-previous revision changed, and what tripped this repo up on the way, is written
-up in [retroglyph#538](https://github.com/crates-lurey-io/retroglyph/issues/538);
-`e878716b` needed no code change to compile, but it retired two workarounds (see
-"Things worth knowing") and shipped one crash
-([retroglyph#567](https://github.com/crates-lurey-io/retroglyph/issues/567)),
-which is why the windowed backends are unusable at this pin until that lands.
+next retroglyph release goes out. The pin is currently `14aff2fc`, up from
+`e878716b`; what tracking `main` costs on a bump like that is written up in
+[retroglyph#538](https://github.com/crates-lurey-io/retroglyph/issues/538). This
+bump fixed the resize panic that made the windowed backends unusable at the
+previous pin
+([retroglyph#567](https://github.com/crates-lurey-io/retroglyph/issues/567)), and
+replaced `MouseEventKind::ScrollUp`/`ScrollDown`/`ScrollLeft`/`ScrollRight` with a
+single pixel-precise `Scroll { dx, dy }`
+([retroglyph#584](https://github.com/crates-lurey-io/retroglyph/pull/584)), which
+is why every demo's scroll-to-pan handler now matches on sign (`dy > 0.0`) rather
+than variant.
 
 ## Layout
 

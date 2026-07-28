@@ -260,8 +260,8 @@ impl Political {
                 let (dx, dy) = (self.cursor.x - world.x, self.cursor.y - world.y);
                 self.camera.pan(dx, dy);
             }
-            MouseEventKind::ScrollUp => self.camera.pan(0, -3),
-            MouseEventKind::ScrollDown => self.camera.pan(0, 3),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.camera.pan(0, -3),
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.camera.pan(0, 3),
             _ => {}
         }
     }

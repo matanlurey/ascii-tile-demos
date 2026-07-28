@@ -194,8 +194,8 @@ impl IsoElevation {
                 self.cursor_tile = self.pick(screen, content);
             }
             MouseEventKind::Up(MouseButton::Left) => self.drag_from = None,
-            MouseEventKind::ScrollUp => self.pan_cells(0, -3),
-            MouseEventKind::ScrollDown => self.pan_cells(0, 3),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.pan_cells(0, -3),
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.pan_cells(0, 3),
             _ => {}
         }
     }

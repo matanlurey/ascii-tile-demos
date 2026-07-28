@@ -308,17 +308,17 @@ impl Pointer {
     /// a click-drag are on a desktop. Nothing in this module (or in any demo)
     /// needs a second input path for touch.
     ///
-    /// `Drag` and `Moved` are deliberately handled by the same arm, and that
-    /// is not defensive coding: `MouseEventKind::Drag` is emitted only by the
-    /// crossterm backend. The winit backends report every pointer motion as
-    /// `Moved` whether or not a button is held, because `WindowApp` tracks the
-    /// cursor position but never which buttons are down
-    /// ([retroglyph#554](https://github.com/crates-lurey-io/retroglyph/issues/554)).
-    /// Matching on `Drag` alone -- the obvious way to write this -- therefore
-    /// works in a terminal and silently does nothing in a browser, which is
-    /// the one backend where touch actually happens. Since a drag is decided
-    /// here from the tracked press anyway (see [`moved`](Self::moved)), the
-    /// kind is only a hint and both spellings mean the same thing.
+    /// `Drag` and `Moved` are deliberately handled by the same arm. The winit
+    /// backends used to report every pointer motion as `Moved` whether or not
+    /// a button was held, because `WindowApp` tracked the cursor position but
+    /// never which buttons were down, so matching on `Drag` alone silently did
+    /// nothing in a browser, the one backend where touch actually happens
+    /// ([retroglyph#554](https://github.com/crates-lurey-io/retroglyph/issues/554),
+    /// fixed upstream). Kept even now that every backend reports `Drag`
+    /// correctly: a drag is decided here from the tracked press regardless
+    /// (see [`moved`](Self::moved)), so the event kind is only a hint, and
+    /// matching both spellings costs nothing while staying correct if a
+    /// backend ever regresses.
     pub fn feed(&mut self, event: &Event) {
         let Event::Mouse(mouse) = event else {
             return;
@@ -329,8 +329,8 @@ impl Pointer {
                 self.moved(mouse);
             }
             MouseEventKind::Up(MouseButton::Left) => self.release(mouse.position),
-            MouseEventKind::ScrollUp => self.gesture.scroll += 1,
-            MouseEventKind::ScrollDown => self.gesture.scroll -= 1,
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.gesture.scroll += 1,
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.gesture.scroll -= 1,
             _ => {}
         }
     }
@@ -516,9 +516,9 @@ mod tests {
     fn scroll_notches_sum_and_then_reset() {
         let mut pointer = Pointer::new();
         for event in [
-            mouse(MouseEventKind::ScrollUp, 0, 0),
-            mouse(MouseEventKind::ScrollUp, 0, 0),
-            mouse(MouseEventKind::ScrollDown, 0, 0),
+            mouse(MouseEventKind::Scroll { dx: 0.0, dy: 1.0 }, 0, 0),
+            mouse(MouseEventKind::Scroll { dx: 0.0, dy: 1.0 }, 0, 0),
+            mouse(MouseEventKind::Scroll { dx: 0.0, dy: -1.0 }, 0, 0),
         ] {
             pointer.feed(&event);
         }

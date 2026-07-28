@@ -301,8 +301,8 @@ impl IsoDiamond {
                 self.cursor_tile = self.layout().cell_to_tile(world_cell);
             }
             MouseEventKind::Up(MouseButton::Left) => self.drag_from = None,
-            MouseEventKind::ScrollUp => self.pan_rows(-3),
-            MouseEventKind::ScrollDown => self.pan_rows(3),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.pan_rows(-3),
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.pan_rows(3),
             _ => {}
         }
     }

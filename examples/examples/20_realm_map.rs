@@ -522,8 +522,8 @@ impl RealmMap {
                 }
             }
             MouseEventKind::Down(MouseButton::Right) => self.commit_move(),
-            MouseEventKind::ScrollUp => self.pan(0, -1),
-            MouseEventKind::ScrollDown => self.pan(0, 1),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => self.pan(0, -1),
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.pan(0, 1),
             _ => {}
         }
     }

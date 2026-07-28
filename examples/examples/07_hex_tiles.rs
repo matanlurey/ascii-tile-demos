@@ -274,8 +274,10 @@ impl HexTiles {
                 let world_cell = screen.offset(self.origin.x, self.origin.y);
                 self.selected = self.layout.cell_to_tile(world_cell);
             }
-            MouseEventKind::ScrollUp => self.origin = self.origin.offset(0, -3),
-            MouseEventKind::ScrollDown => self.origin = self.origin.offset(0, 3),
+            MouseEventKind::Scroll { dy, .. } if dy > 0.0 => {
+                self.origin = self.origin.offset(0, -3);
+            }
+            MouseEventKind::Scroll { dy, .. } if dy < 0.0 => self.origin = self.origin.offset(0, 3),
             _ => {}
         }
     }

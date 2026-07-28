@@ -36,8 +36,8 @@ pub const fn decode_mouse(x: u16, y: u16, kind: u8) -> Option<Event> {
         KIND_DOWN => MouseEventKind::Down(MouseButton::Left),
         KIND_UP => MouseEventKind::Up(MouseButton::Left),
         KIND_MOVE => MouseEventKind::Moved,
-        KIND_SCROLL_UP => MouseEventKind::ScrollUp,
-        KIND_SCROLL_DOWN => MouseEventKind::ScrollDown,
+        KIND_SCROLL_UP => MouseEventKind::Scroll { dx: 0.0, dy: 1.0 },
+        KIND_SCROLL_DOWN => MouseEventKind::Scroll { dx: 0.0, dy: -1.0 },
         KIND_DRAG => MouseEventKind::Drag(MouseButton::Left),
         _ => return None,
     };
@@ -78,8 +78,14 @@ mod tests {
             Some(MouseEventKind::Up(MouseButton::Left))
         );
         assert_eq!(kind_of(KIND_MOVE), Some(MouseEventKind::Moved));
-        assert_eq!(kind_of(KIND_SCROLL_UP), Some(MouseEventKind::ScrollUp));
-        assert_eq!(kind_of(KIND_SCROLL_DOWN), Some(MouseEventKind::ScrollDown));
+        assert_eq!(
+            kind_of(KIND_SCROLL_UP),
+            Some(MouseEventKind::Scroll { dx: 0.0, dy: 1.0 })
+        );
+        assert_eq!(
+            kind_of(KIND_SCROLL_DOWN),
+            Some(MouseEventKind::Scroll { dx: 0.0, dy: -1.0 })
+        );
         assert_eq!(
             kind_of(KIND_DRAG),
             Some(MouseEventKind::Drag(MouseButton::Left))
