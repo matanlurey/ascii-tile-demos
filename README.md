@@ -156,6 +156,7 @@ a projection the gallery did not have at all.
 | 57 | `dealt_dungeon` | Hand of Fate | The map and the deck are the same objects, dealt face-down |
 | 58 | `carved_lair` | Dungeon Keeper | Terrain excavated at runtime, with invaders repathing around the cut |
 | 59 | `city_works` | Civilization II | Small readouts ringing one large view, over a build queue |
+| 64 | `edict_scales` | Tyranny | Two independent standing meters growing from a shared centre, plus a compositional spell builder |
 | 63 | `grift_parley` | Griftlands | A negotiation board of linked argument entities, not a hand of cards |
 | 62 | `quartered_arms` | Ultima Ratio Regum | Procedural heraldry as a glyph mosaic, reroll-guaranteed distinct per nation |
 | 60 | `tyrant_age` | Lands of Achra | A wrapped, word-wise rich-text run: one sentence, six colors |
