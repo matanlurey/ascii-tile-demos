@@ -98,6 +98,7 @@ include_demo!(d56, "../examples/56_open_terms.rs");
 include_demo!(d57, "../examples/57_dealt_dungeon.rs");
 include_demo!(d58, "../examples/58_carved_lair.rs");
 include_demo!(d59, "../examples/59_city_works.rs");
+include_demo!(d69, "../examples/69_spoken_odds.rs");
 include_demo!(d68, "../examples/68_mage_thrones.rs");
 include_demo!(d67, "../examples/67_shire_harvest.rs");
 include_demo!(d66, "../examples/66_saints_road.rs");
@@ -202,6 +203,7 @@ demo_tests!(open_terms, d56::OpenTerms);
 demo_tests!(dealt_dungeon, d57::DealtDungeon);
 demo_tests!(carved_lair, d58::CarvedLair);
 demo_tests!(city_works, d59::CityWorks);
+demo_tests!(spoken_odds, d69::SpokenOdds);
 demo_tests!(mage_thrones, d68::MageThrones);
 demo_tests!(shire_harvest, d67::ShireHarvest);
 demo_tests!(saints_road, d66::SaintsRoad);
@@ -374,6 +376,7 @@ mod phone_shapes {
         dealt_dungeon => d57::DealtDungeon,
         carved_lair => d58::CarvedLair,
         city_works => d59::CityWorks,
+        spoken_odds => d69::SpokenOdds,
         mage_thrones => d68::MageThrones,
         shire_harvest => d67::ShireHarvest,
         saints_road => d66::SaintsRoad,
