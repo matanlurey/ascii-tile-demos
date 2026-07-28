@@ -99,6 +99,7 @@ include_demo!(d57, "../examples/57_dealt_dungeon.rs");
 include_demo!(d58, "../examples/58_carved_lair.rs");
 include_demo!(d59, "../examples/59_city_works.rs");
 include_demo!(d60, "../examples/60_tyrant_age.rs");
+include_demo!(d61, "../examples/61_light_years.rs");
 
 /// Declares the three standard tests for one demo.
 macro_rules! demo_tests {
@@ -195,6 +196,7 @@ demo_tests!(dealt_dungeon, d57::DealtDungeon);
 demo_tests!(carved_lair, d58::CarvedLair);
 demo_tests!(city_works, d59::CityWorks);
 demo_tests!(tyrant_age, d60::TyrantAge);
+demo_tests!(light_years, d61::LightYears);
 
 /// Every demo must draw to the live grid, not to a fixed one.
 ///
@@ -359,5 +361,6 @@ mod phone_shapes {
         carved_lair => d58::CarvedLair,
         city_works => d59::CityWorks,
         tyrant_age => d60::TyrantAge,
+        light_years => d61::LightYears,
     }
 }
