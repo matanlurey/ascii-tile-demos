@@ -294,6 +294,10 @@ name = "59_city_works"
 path = "examples/59_city_works.rs"
 
 [[example]]
+name = "62_quartered_arms"
+path = "examples/62_quartered_arms.rs"
+
+[[example]]
 name = "60_tyrant_age"
 path = "examples/60_tyrant_age.rs"
 

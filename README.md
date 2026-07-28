@@ -156,6 +156,7 @@ a projection the gallery did not have at all.
 | 57 | `dealt_dungeon` | Hand of Fate | The map and the deck are the same objects, dealt face-down |
 | 58 | `carved_lair` | Dungeon Keeper | Terrain excavated at runtime, with invaders repathing around the cut |
 | 59 | `city_works` | Civilization II | Small readouts ringing one large view, over a build queue |
+| 62 | `quartered_arms` | Ultima Ratio Regum | Procedural heraldry as a glyph mosaic, reroll-guaranteed distinct per nation |
 | 60 | `tyrant_age` | Lands of Achra | A wrapped, word-wise rich-text run: one sentence, six colors |
 | 61 | `light_years` | Frontier: Elite II | Parallel projection of a 3D star volume, read by its Z-stalks |
 
