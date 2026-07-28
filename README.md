@@ -156,6 +156,7 @@ a projection the gallery did not have at all.
 | 57 | `dealt_dungeon` | Hand of Fate | The map and the deck are the same objects, dealt face-down |
 | 58 | `carved_lair` | Dungeon Keeper | Terrain excavated at runtime, with invaders repathing around the cut |
 | 59 | `city_works` | Civilization II | Small readouts ringing one large view, over a build queue |
+| 67 | `shire_harvest` | Lords of the Realm II | A labor slider whose production preview is the turn's own math |
 | 66 | `saints_road` | Darklands | A pull-down menu bar with keyboard mnemonics, disabled items, and a flipping dropdown |
 | 65 | `domesday_shire` | Conqueror AD 1086 | An isometric manor beside a minimap with a viewport rectangle derived from the camera |
 | 64 | `edict_scales` | Tyranny | Two independent standing meters growing from a shared centre, plus a compositional spell builder |
